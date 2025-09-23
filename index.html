@@ -32,12 +32,12 @@
       height: 32px;
       vertical-align: middle;
     }
-    nav, .busca {
+    .busca {
       text-align: center;
       margin: 1em 0;
       flex-wrap: wrap;
     }
-    nav button, .busca button, #btn-atualizar-tudo {
+    .busca button {
       margin: 5px;
       padding: 0.5em 1em;
       background: #00aced;
@@ -47,17 +47,8 @@
       cursor: pointer;
       outline: none;
     }
-    nav button.active {
+    .busca button:hover {
       background: #0077a3;
-      font-weight: bold;
-    }
-    nav button:hover, .busca button:hover, #btn-atualizar-tudo:hover {
-      background: #0077a3;
-    }
-    #btn-atualizar-tudo {
-      background: #0d8f4f;
-      font-weight: bold;
-      margin-bottom: 1em;
     }
     .busca input {
       padding: 0.5em;
@@ -70,45 +61,25 @@
       font-weight: bold;
       margin: 1em 0;
     }
-    #custom-editorias-bar {
-      margin: 0.5em 0;
-      text-align: center;
-    }
-    #custom-editorias-bar button {
-      background: #444;
-      border: none;
+    .sessao-data {
+      margin: 2em 0 1em 0;
       color: #fff;
-      border-radius: 5px;
-      margin: 0 5px;
-      cursor: pointer;
-      padding: 0.3em 0.7em;
-      font-size: 0.95em;
-    }
-    #custom-editorias-bar button.selected {
-      background: #00aced;
+      font-size: 1.1em;
       font-weight: bold;
-    }
-    #custom-editorias-bar button.remove {
-      background: #b71c1c;
-      margin-left: 0.25em;
-      padding: 0.2em 0.4em;
-    }
-    #config-editoria {
-      background: #222;
-      padding: 1em;
-      border-radius: 8px;
-      margin: 1em 0;
-      color: #fff;
-      display: none;
-    }
-    #config-editoria label, #config-editoria input, #config-editoria select {
-      margin: 0.3em;
+      text-align: left;
+      border-bottom: 1px solid #333;
+      padding-bottom: 0.2em;
     }
     #noticias {
+      display: flex;
+      flex-direction: column;
+      gap: 2em;
+      padding: 1em;
+    }
+    .cards-agrupados {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       gap: 1em;
-      padding: 1em;
     }
     .card {
       background: #ffffff;
@@ -147,20 +118,8 @@
     .card p {
       color: #333;
     }
-    #filtro-data-bar {
-      margin: 1em 0 0.3em 0;
-      text-align: center;
-      color: #fff;
-      font-size: 0.98em;
-    }
-    #filtro-data-bar select {
-      margin-left: 0.5em;
-      padding: 0.2em 0.6em;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
     @media (max-width: 600px) {
-      nav button, .busca button, #btn-atualizar-tudo {
+      .busca button {
         width: 90%;
         margin: 5px auto;
         display: block;
@@ -168,7 +127,7 @@
       .busca input {
         width: 90%;
       }
-      #noticias {
+      .cards-agrupados {
         grid-template-columns: 1fr;
       }
       .titulo-radar {
@@ -187,30 +146,9 @@
       <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f6f0.png" alt="Radar Icon" />
       <span>Radar de Notícias</span>
     </div>
-    <button id="btn-atualizar-tudo" onclick="atualizarTodasEditoriasHoje()">Atualizar notícias de todas as editorias (HOJE)</button>
-    <nav id="editorias"></nav>
-    <div id="custom-editorias-bar"></div>
-    <button id="btn-personalizar" onclick="abrirConfigEditoria()">Personalizar Editorias</button>
-    <div id="config-editoria">
-      <label><strong>Adicionar editoria:</strong>
-        <select id="select-editoria"></select>
-      </label>
-      <button onclick="adicionarEditoriaPersonalizada()">Adicionar</button>
-      <button onclick="fecharConfigEditoria()">Fechar</button>
-    </div>
     <div class="busca">
       <input type="text" id="termoBusca" placeholder="Buscar por palavra-chave">
       <button onclick="buscarPorPalavra()">Buscar</button>
-    </div>
-    <div id="filtro-data-bar">
-      <label for="filtro-data">Filtrar por data: </label>
-      <select id="filtro-data" onchange="aplicarFiltroData()">
-        <option value="tudo">Tudo</option>
-        <option value="hoje">Hoje</option>
-        <option value="ontem">Ontem</option>
-        <option value="semana">Última semana</option>
-        <option value="mes">Último mês</option>
-      </select>
     </div>
     <div class="contador" id="contador"></div>
   </header>
@@ -239,66 +177,9 @@ const feeds = [
   { nome: 'Religião', url: 'https://news.google.com/rss/search?q=religião&hl=pt-BR&gl=BR&ceid=BR:pt-419' }
 ];
 
-let customEditorias = [];
 let noticiasAtuais = [];
-let noticiasFiltradas = [];
-let editoriaAtual = 0;
-let filtroDataAtual = 'tudo';
+let noticiasPorData = {};
 
-// Novidade: Carregar notícias de todas editorias de hoje
-async function atualizarTodasEditoriasHoje() {
-  document.getElementById("noticias").innerHTML = "<p>Carregando notícias de todas as editorias de hoje...</p>";
-  atualizarContador(0);
-
-  const todasNoticias = [];
-  for (const feed of feeds) {
-    try {
-      const resp = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(feed.url)}`);
-      const data = await resp.json();
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(data.contents, "application/xml");
-      const items = Array.from(xml.querySelectorAll("item"));
-      // Pegue apenas notícias de hoje
-      const hoje = new Date();
-      hoje.setHours(0,0,0,0);
-      items.forEach(item => {
-        const pubDate = item.querySelector("pubDate")?.textContent;
-        if (!pubDate) return;
-        const dataNoticia = new Date(pubDate);
-        // Ajuste para timezone local
-        const localData = new Date(dataNoticia.getFullYear(), dataNoticia.getMonth(), dataNoticia.getDate());
-        if (localData.getTime() === hoje.getTime()) {
-          todasNoticias.push(item);
-        }
-      });
-    } catch (err) {
-      // Ignore falhas individuais de feed
-    }
-  }
-  // Ordena todas por data (mais recente primeiro)
-  todasNoticias.sort((a, b) => {
-    const dateA = new Date(a.querySelector("pubDate")?.textContent || 0);
-    const dateB = new Date(b.querySelector("pubDate")?.textContent || 0);
-    return dateB - dateA;
-  });
-  noticiasAtuais = todasNoticias;
-  filtroDataAtual = 'hoje';
-  exibirNoticias(noticiasAtuais);
-}
-
-function salvarCustomEditorias() {
-  localStorage.setItem('customEditorias', JSON.stringify(customEditorias));
-}
-function carregarCustomEditorias() {
-  const saved = localStorage.getItem('customEditorias');
-  if (saved) {
-    customEditorias = JSON.parse(saved);
-  } else {
-    // Por padrão mostrar as 3 principais
-    customEditorias = [0,1,2];
-    salvarCustomEditorias();
-  }
-}
 function atualizarContador(qtd) {
   document.getElementById("contador").textContent = `🔢 Total de notícias exibidas: ${qtd}`;
 }
@@ -309,14 +190,11 @@ function formatarDataAMPM(dataStr) {
   if (isNaN(data)) return "";
   return data.toLocaleString('pt-BR', {
     day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', hour12: true
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
   }).replace(',', ' -');
 }
 
 function isBreakingNews(title, description) {
-  // Critérios de destaque ("breaking news"):
-  // - Palavras no título: urgente, breaking, última hora, alerta, emergência, importante
-  // - OU: termo "Breaking News" no description, ou título todo em maiúsculo e curto
   const crits = /(\burgente\b|\bbreaking\b|última hora|alerta|emergência|importante)/i;
   if (crits.test(title) || crits.test(description)) return true;
   if (/BREAKING NEWS/i.test(description)) return true;
@@ -324,154 +202,143 @@ function isBreakingNews(title, description) {
   return false;
 }
 
-function exibirNoticias(lista) {
+// Agrupar por: último minuto, hoje, ontem, semana, mês
+function agruparPorDatas(lista) {
+  const agora = new Date();
+  const hoje = new Date(agora); hoje.setHours(0,0,0,0);
+  const ontem = new Date(hoje); ontem.setDate(hoje.getDate()-1);
+  const semana = new Date(hoje); semana.setDate(hoje.getDate()-7);
+
+  const grupos = {
+    'último segundo': [],
+    'último minuto': [],
+    'hoje': [],
+    'ontem': [],
+    'última semana': [],
+    'anteriores': []
+  };
+
+  lista.forEach(item => {
+    const pubDate = item.querySelector("pubDate")?.textContent;
+    if (!pubDate) return;
+    const dataNoticia = new Date(pubDate);
+    const diffSeg = Math.floor((agora.getTime() - dataNoticia.getTime())/1000);
+    const diffMin = Math.floor(diffSeg/60);
+
+    // Agrupamentos
+    if (diffSeg <= 1) {
+      grupos['último segundo'].push(item);
+    } else if (diffMin < 1) {
+      grupos['último minuto'].push(item);
+    } else {
+      // Ajusta para comparar só dia/mes/ano
+      const localNoticia = new Date(dataNoticia.getFullYear(), dataNoticia.getMonth(), dataNoticia.getDate());
+      if (localNoticia.getTime() === hoje.getTime()) {
+        grupos['hoje'].push(item);
+      } else if (localNoticia.getTime() === ontem.getTime()) {
+        grupos['ontem'].push(item);
+      } else if (localNoticia >= semana) {
+        grupos['última semana'].push(item);
+      } else {
+        grupos['anteriores'].push(item);
+      }
+    }
+  });
+  return grupos;
+}
+
+function exibirNoticiasAgrupadas(grupos) {
   const noticias = document.getElementById("noticias");
   noticias.innerHTML = "";
-  if (!lista.length) {
-    noticias.innerHTML = "<p>Nenhuma notícia encontrada.</p>";
-    atualizarContador(0);
-    return;
-  }
-  // Destaques/Breaking news no topo (max 3)
-  let breaking = lista.filter(item => {
-    const title = item.querySelector("title")?.textContent || "";
-    const desc = item.querySelector("description")?.textContent || "";
-    return isBreakingNews(title, desc);
-  }).slice(0,3);
-  let restantes = lista.filter(item => !breaking.includes(item));
-  let final = breaking.concat(restantes);
-  final.forEach(item => {
-    try {
-      const title = item.querySelector("title").textContent;
-      const link = item.querySelector("link").textContent;
-      const description = item.querySelector("description")?.textContent || "";
-      const pubDate = item.querySelector("pubDate")?.textContent || "";
-      const breaking = isBreakingNews(title, description);
-      const card = document.createElement("div");
-      card.className = "card" + (breaking ? " breaking" : "");
-      card.innerHTML = `
-        ${breaking ? '<span class="breaking-label">DESTAQUE</span>' : ''}
-        <h3><a href="${link}" target="_blank">${title}</a></h3>
-        <small style="color:#666;">${pubDate ? ('🕒 ' + formatarDataAMPM(pubDate)) : ''}</small>
-        <p>${description}</p>
-      `;
-      noticias.appendChild(card);
-    } catch (e) {}
+  let total = 0;
+  // Ordem da exibição
+  const ordem = ['último segundo', 'último minuto', 'hoje', 'ontem', 'última semana', 'anteriores'];
+  ordem.forEach(grupo => {
+    const lista = grupos[grupo];
+    if (!lista || !lista.length) return;
+    total += lista.length;
+    const sessao = document.createElement('section');
+    sessao.className = 'sessao-data';
+    sessao.innerHTML = `<div>${grupo.toUpperCase()} (${lista.length})</div>`;
+    
+    const cards = document.createElement('div');
+    cards.className = 'cards-agrupados';
+
+    // Destaques/Breaking news no topo (max 3)
+    let breaking = lista.filter(item => {
+      const title = item.querySelector("title")?.textContent || "";
+      const desc = item.querySelector("description")?.textContent || "";
+      return isBreakingNews(title, desc);
+    }).slice(0,3);
+    let restantes = lista.filter(item => !breaking.includes(item));
+    let final = breaking.concat(restantes);
+
+    final.forEach(item => {
+      try {
+        const title = item.querySelector("title").textContent;
+        const link = item.querySelector("link").textContent;
+        const description = item.querySelector("description")?.textContent || "";
+        const pubDate = item.querySelector("pubDate")?.textContent || "";
+        const breaking = isBreakingNews(title, description);
+        const card = document.createElement("div");
+        card.className = "card" + (breaking ? " breaking" : "");
+        card.innerHTML = `
+          ${breaking ? '<span class="breaking-label">DESTAQUE</span>' : ''}
+          <h3><a href="${link}" target="_blank">${title}</a></h3>
+          <small style="color:#666;">${pubDate ? ('🕒 ' + formatarDataAMPM(pubDate)) : ''}</small>
+          <p>${description}</p>
+        `;
+        cards.appendChild(card);
+      } catch (e) {}
+    });
+
+    sessao.appendChild(cards);
+    noticias.appendChild(sessao);
   });
-  atualizarContador(final.length);
+  atualizarContador(total);
 }
 
-function carregarEditoriasNav() {
-  const nav = document.getElementById('editorias');
-  nav.innerHTML = '';
-  feeds.forEach((feed, idx) => {
-    const btn = document.createElement('button');
-    btn.textContent = feed.nome;
-    btn.onclick = () => selecionarEditoria(idx);
-    btn.id = "btn-edit-" + idx;
-    btn.style.display = 'none'; // só mostra na personalização
-    nav.appendChild(btn);
-  });
-}
-
-function exibirCustomEditoriasBar() {
-  const bar = document.getElementById('custom-editorias-bar');
-  bar.innerHTML = '';
-  customEditorias.forEach(idx => {
-    if (!feeds[idx]) return;
-    const btn = document.createElement('button');
-    btn.textContent = feeds[idx].nome;
-    btn.onclick = () => selecionarEditoria(idx);
-    btn.className = (editoriaAtual===idx ? "selected" : "");
-    bar.appendChild(btn);
-
-    const btnX = document.createElement('button');
-    btnX.textContent = 'x';
-    btnX.title = 'Remover editoria';
-    btnX.className = "remove";
-    btnX.onclick = (e) => {
-      e.stopPropagation();
-      removerEditoriaPersonalizada(idx);
-    }
-    bar.appendChild(btnX);
-  });
-}
-
-function abrirConfigEditoria() {
-  document.getElementById('config-editoria').style.display = 'block';
-  document.getElementById('btn-personalizar').style.display = 'none';
-  // Preencher select com feeds disponíveis não inclusos
-  const sel = document.getElementById('select-editoria');
-  sel.innerHTML = '';
-  feeds.forEach((feed, idx) => {
-    if (!customEditorias.includes(idx)) {
-      const opt = document.createElement('option');
-      opt.value = idx;
-      opt.textContent = feed.nome;
-      sel.appendChild(opt);
-    }
-  });
-}
-
-function fecharConfigEditoria() {
-  document.getElementById('config-editoria').style.display = 'none';
-  document.getElementById('btn-personalizar').style.display = 'block';
-}
-
-function adicionarEditoriaPersonalizada() {
-  const sel = document.getElementById('select-editoria');
-  const idx = parseInt(sel.value);
-  if (!customEditorias.includes(idx)) {
-    customEditorias.push(idx);
-    salvarCustomEditorias();
-    exibirCustomEditoriasBar();
-    fecharConfigEditoria();
-  }
-}
-
-function removerEditoriaPersonalizada(idx) {
-  if (customEditorias.length <= 1) return; // sempre pelo menos 1 editoria
-  customEditorias = customEditorias.filter(i => i!==idx);
-  salvarCustomEditorias();
-  if (!customEditorias.includes(editoriaAtual)) {
-    selecionarEditoria(customEditorias[0]);
-  } else {
-    exibirCustomEditoriasBar();
-  }
-}
-
-function selecionarEditoria(idx) {
-  editoriaAtual = idx;
-  exibirCustomEditoriasBar();
-  carregarEditorias(idx);
-}
-
-function carregarEditorias(idx) {
-  const rssUrl = feeds[idx].url;
-  const noticias = document.getElementById("noticias");
-  noticias.innerHTML = "<p>Carregando notícias...</p>";
+// Carrega notícias de todos os feeds, exibe agrupadas
+async function carregarTodasNoticiasAgrupadas() {
+  document.getElementById("noticias").innerHTML = "<p>Carregando notícias de todas as editorias...</p>";
   atualizarContador(0);
 
-  fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`)
-    .then(response => response.json())
-    .then(data => {
+  let todasNoticias = [];
+  for (const feed of feeds) {
+    try {
+      const resp = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(feed.url)}`);
+      const data = await resp.json();
       const parser = new DOMParser();
       const xml = parser.parseFromString(data.contents, "application/xml");
-      noticiasAtuais = Array.from(xml.querySelectorAll("item"));
-      aplicarFiltroData();
-    })
-    .catch(err => {
-      noticias.innerHTML = `<p>Erro ao carregar notícias: ${err.message}</p>`;
-    });
+      const items = Array.from(xml.querySelectorAll("item"));
+      todasNoticias = todasNoticias.concat(items);
+    } catch (err) {
+      // Ignora erro de feed individual
+    }
+  }
+  // Ordena por data (mais recente primeiro)
+  todasNoticias.sort((a, b) => {
+    const dateA = new Date(a.querySelector("pubDate")?.textContent || 0);
+    const dateB = new Date(b.querySelector("pubDate")?.textContent || 0);
+    return dateB - dateA;
+  });
+  noticiasAtuais = todasNoticias;
+  const grupos = agruparPorDatas(noticiasAtuais);
+  exibirNoticiasAgrupadas(grupos);
 }
 
+// Busca por palavra-chave em todos feeds
 function buscarPorPalavra() {
   const termo = document.getElementById("termoBusca").value.trim();
-  if (!termo) return;
-  const rssBusca = `https://news.google.com/rss/search?q=${encodeURIComponent(termo)}&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
-  const noticias = document.getElementById("noticias");
-  noticias.innerHTML = "<p>Buscando notícias...</p>";
+  if (!termo) {
+    carregarTodasNoticiasAgrupadas();
+    return;
+  }
+  document.getElementById("noticias").innerHTML = "<p>Buscando notícias...</p>";
   atualizarContador(0);
+
+  // Busca só no Google News, mas poderia fazer por todos feeds (para simplificar)
+  const rssBusca = `https://news.google.com/rss/search?q=${encodeURIComponent(termo)}&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
 
   fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(rssBusca)}`)
     .then(response => response.json())
@@ -479,45 +346,22 @@ function buscarPorPalavra() {
       const parser = new DOMParser();
       const xml = parser.parseFromString(data.contents, "application/xml");
       noticiasAtuais = Array.from(xml.querySelectorAll("item"));
-      aplicarFiltroData();
+      noticiasAtuais.sort((a, b) => {
+        const dateA = new Date(a.querySelector("pubDate")?.textContent || 0);
+        const dateB = new Date(b.querySelector("pubDate")?.textContent || 0);
+        return dateB - dateA;
+      });
+      const grupos = agruparPorDatas(noticiasAtuais);
+      exibirNoticiasAgrupadas(grupos);
     })
     .catch(err => {
-      noticias.innerHTML = `<p>Erro ao buscar notícias: ${err.message}</p>`;
+      document.getElementById("noticias").innerHTML = `<p>Erro ao buscar notícias: ${err.message}</p>`;
     });
-}
-
-// Filtro de data melhorado!
-function aplicarFiltroData() {
-  filtroDataAtual = document.getElementById('filtro-data').value;
-  let agora = new Date();
-  agora.setHours(0,0,0,0);
-  let ontem = new Date(agora); ontem.setDate(agora.getDate()-1);
-  let semana = new Date(agora); semana.setDate(agora.getDate()-7);
-  let mes = new Date(agora); mes.setMonth(agora.getMonth()-1);
-
-  noticiasFiltradas = noticiasAtuais.filter(item => {
-    const pubDate = item.querySelector("pubDate")?.textContent;
-    if (!pubDate) return false;
-    const dataNoticia = new Date(pubDate);
-    // Ajuste para timezone local: compara só o ano, mês e dia
-    const localNoticia = new Date(dataNoticia.getFullYear(), dataNoticia.getMonth(), dataNoticia.getDate());
-    switch(filtroDataAtual) {
-      case 'hoje': return localNoticia.getTime() === agora.getTime();
-      case 'ontem': return localNoticia.getTime() === ontem.getTime();
-      case 'semana': return localNoticia >= semana;
-      case 'mes': return localNoticia >= mes;
-      default: return true;
-    }
-  });
-  exibirNoticias(noticiasFiltradas);
 }
 
 // Inicialização
 window.onload = () => {
-  carregarCustomEditorias();
-  carregarEditoriasNav();
-  exibirCustomEditoriasBar();
-  selecionarEditoria(customEditorias[0]);
+  carregarTodasNoticiasAgrupadas();
 };
 </script>
 </body>
