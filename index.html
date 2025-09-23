@@ -16,11 +16,11 @@
       padding: 1em;
       text-align: center;
     }
-    nav, .busca {
+    nav, .busca, .filtros {
       text-align: center;
       margin: 1em 0;
     }
-    nav button, .busca button {
+    nav button, .busca button, .filtros button {
       margin: 5px;
       padding: 0.5em 1em;
       background: #00aced;
@@ -29,7 +29,7 @@
       border-radius: 5px;
       cursor: pointer;
     }
-    nav button:hover, .busca button:hover {
+    nav button:hover, .busca button:hover, .filtros button:hover {
       background: #0077a3;
     }
     .busca input {
@@ -62,6 +62,7 @@
 <body>
   <header>
     <h1>🗞️ Central de Notícias - Hoje</h1>
+
     <nav id="editorias">
       <button onclick="carregarEditorias('geral')">Geral</button>
       <button onclick="carregarEditorias('mundo')">Mundo</button>
@@ -73,6 +74,11 @@
       <button onclick="carregarEditorias('esportes')">Esportes</button>
       <button onclick="carregarEditorias('entretenimento')">Entretenimento</button>
     </nav>
+
+    <div class="filtros">
+      <button onclick="filtrarHoje()">Hoje</button>
+      <button onclick="filtrarPassado()">Passado</button>
+    </div>
 
     <div class="busca">
       <input type="text" id="termoBusca" placeholder="Buscar por palavra-chave">
@@ -97,9 +103,29 @@
       entretenimento: 'https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT.pt_br/entretenimento?hl=pt-BR&gl=BR&ceid=BR:pt-419'
     };
 
+    let todasNoticias = [];
+
     function atualizarContador(qtd) {
-      const contador = document.getElementById("contador");
-      contador.textContent = `🔢 Total de notícias exibidas: ${qtd}`;
+      document.getElementById("contador").textContent = `🔢 Total de notícias exibidas: ${qtd}`;
+    }
+
+    function exibirNoticias(lista) {
+      const noticias = document.getElementById("noticias");
+      noticias.innerHTML = "";
+      lista.forEach(item => {
+        const title = item.querySelector("title").textContent;
+        const link = item.querySelector("link").textContent;
+        const description = item.querySelector("description").textContent;
+
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <h3><a href="${link}" target="_blank">${title}</a></h3>
+          <p>${description}</p>
+        `;
+        noticias.appendChild(card);
+      });
+      atualizarContador(lista.length);
     }
 
     function carregarEditorias(editoria) {
@@ -113,24 +139,8 @@
         .then(data => {
           const parser = new DOMParser();
           const xml = parser.parseFromString(data.contents, "application/xml");
-          const items = xml.querySelectorAll("item");
-          noticias.innerHTML = "";
-
-          items.forEach(item => {
-            const title = item.querySelector("title").textContent;
-            const link = item.querySelector("link").textContent;
-            const description = item.querySelector("description").textContent;
-
-            const card = document.createElement("div");
-            card.className = "card";
-            card.innerHTML = `
-              <h3><a href="${link}" target="_blank">${title}</a></h3>
-              <p>${description}</p>
-            `;
-            noticias.appendChild(card);
-          });
-
-          atualizarContador(items.length);
+          todasNoticias = Array.from(xml.querySelectorAll("item"));
+          exibirNoticias(todasNoticias);
         })
         .catch(err => {
           noticias.innerHTML = `<p>Erro ao carregar notícias: ${err.message}</p>`;
@@ -151,33 +161,30 @@
         .then(data => {
           const parser = new DOMParser();
           const xml = parser.parseFromString(data.contents, "application/xml");
-          const items = xml.querySelectorAll("item");
-          noticias.innerHTML = "";
-
-          if (items.length === 0) {
-            noticias.innerHTML = "<p>Nenhuma notícia encontrada.</p>";
-            return;
-          }
-
-          items.forEach(item => {
-            const title = item.querySelector("title").textContent;
-            const link = item.querySelector("link").textContent;
-            const description = item.querySelector("description").textContent;
-
-            const card = document.createElement("div");
-            card.className = "card";
-            card.innerHTML = `
-              <h3><a href="${link}" target="_blank">${title}</a></h3>
-              <p>${description}</p>
-            `;
-            noticias.appendChild(card);
-          });
-
-          atualizarContador(items.length);
+          todasNoticias = Array.from(xml.querySelectorAll("item"));
+          exibirNoticias(todasNoticias);
         })
         .catch(err => {
           noticias.innerHTML = `<p>Erro ao buscar notícias: ${err.message}</p>`;
         });
+    }
+
+    function filtrarHoje() {
+      const hoje = new Date().toDateString();
+      const filtradas = todasNoticias.filter(item => {
+        const pubDate = new Date(item.querySelector("pubDate").textContent);
+        return pubDate.toDateString() === hoje;
+      });
+      exibirNoticias(filtradas);
+    }
+
+    function filtrarPassado() {
+      const hoje = new Date().toDateString();
+      const filtradas = todasNoticias.filter(item => {
+        const pubDate = new Date(item.querySelector("pubDate").textContent);
+        return pubDate.toDateString() !== hoje;
+      });
+      exibirNoticias(filtradas);
     }
 
     // Carrega notícias gerais ao iniciar
