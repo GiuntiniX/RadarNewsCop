@@ -37,7 +37,7 @@
       margin: 1em 0;
       flex-wrap: wrap;
     }
-    nav button, .busca button {
+    nav button, .busca button, #btn-atualizar-tudo {
       margin: 5px;
       padding: 0.5em 1em;
       background: #00aced;
@@ -51,8 +51,13 @@
       background: #0077a3;
       font-weight: bold;
     }
-    nav button:hover, .busca button:hover {
+    nav button:hover, .busca button:hover, #btn-atualizar-tudo:hover {
       background: #0077a3;
+    }
+    #btn-atualizar-tudo {
+      background: #0d8f4f;
+      font-weight: bold;
+      margin-bottom: 1em;
     }
     .busca input {
       padding: 0.5em;
@@ -155,7 +160,7 @@
       border: 1px solid #ccc;
     }
     @media (max-width: 600px) {
-      nav button, .busca button {
+      nav button, .busca button, #btn-atualizar-tudo {
         width: 90%;
         margin: 5px auto;
         display: block;
@@ -182,13 +187,13 @@
       <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f6f0.png" alt="Radar Icon" />
       <span>Radar de Notícias</span>
     </div>
+    <button id="btn-atualizar-tudo" onclick="atualizarTodasEditoriasHoje()">Atualizar notícias de todas as editorias (HOJE)</button>
     <nav id="editorias"></nav>
     <div id="custom-editorias-bar"></div>
     <button id="btn-personalizar" onclick="abrirConfigEditoria()">Personalizar Editorias</button>
     <div id="config-editoria">
       <label><strong>Adicionar editoria:</strong>
-        <select id="select-editoria">
-        </select>
+        <select id="select-editoria"></select>
       </label>
       <button onclick="adicionarEditoriaPersonalizada()">Adicionar</button>
       <button onclick="fecharConfigEditoria()">Fechar</button>
@@ -239,6 +244,47 @@ let noticiasAtuais = [];
 let noticiasFiltradas = [];
 let editoriaAtual = 0;
 let filtroDataAtual = 'tudo';
+
+// Novidade: Carregar notícias de todas editorias de hoje
+async function atualizarTodasEditoriasHoje() {
+  document.getElementById("noticias").innerHTML = "<p>Carregando notícias de todas as editorias de hoje...</p>";
+  atualizarContador(0);
+
+  const todasNoticias = [];
+  for (const feed of feeds) {
+    try {
+      const resp = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(feed.url)}`);
+      const data = await resp.json();
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(data.contents, "application/xml");
+      const items = Array.from(xml.querySelectorAll("item"));
+      // Pegue apenas notícias de hoje
+      const hoje = new Date();
+      hoje.setHours(0,0,0,0);
+      items.forEach(item => {
+        const pubDate = item.querySelector("pubDate")?.textContent;
+        if (!pubDate) return;
+        const dataNoticia = new Date(pubDate);
+        // Ajuste para timezone local
+        const localData = new Date(dataNoticia.getFullYear(), dataNoticia.getMonth(), dataNoticia.getDate());
+        if (localData.getTime() === hoje.getTime()) {
+          todasNoticias.push(item);
+        }
+      });
+    } catch (err) {
+      // Ignore falhas individuais de feed
+    }
+  }
+  // Ordena todas por data (mais recente primeiro)
+  todasNoticias.sort((a, b) => {
+    const dateA = new Date(a.querySelector("pubDate")?.textContent || 0);
+    const dateB = new Date(b.querySelector("pubDate")?.textContent || 0);
+    return dateB - dateA;
+  });
+  noticiasAtuais = todasNoticias;
+  filtroDataAtual = 'hoje';
+  exibirNoticias(noticiasAtuais);
+}
 
 function salvarCustomEditorias() {
   localStorage.setItem('customEditorias', JSON.stringify(customEditorias));
@@ -440,7 +486,7 @@ function buscarPorPalavra() {
     });
 }
 
-// Filtro de data
+// Filtro de data melhorado!
 function aplicarFiltroData() {
   filtroDataAtual = document.getElementById('filtro-data').value;
   let agora = new Date();
@@ -453,14 +499,13 @@ function aplicarFiltroData() {
     const pubDate = item.querySelector("pubDate")?.textContent;
     if (!pubDate) return false;
     const dataNoticia = new Date(pubDate);
-    if (isNaN(dataNoticia)) return false;
-    dataNoticia.setHours(0,0,0,0);
-
+    // Ajuste para timezone local: compara só o ano, mês e dia
+    const localNoticia = new Date(dataNoticia.getFullYear(), dataNoticia.getMonth(), dataNoticia.getDate());
     switch(filtroDataAtual) {
-      case 'hoje': return dataNoticia.getTime() === agora.getTime();
-      case 'ontem': return dataNoticia.getTime() === ontem.getTime();
-      case 'semana': return dataNoticia >= semana;
-      case 'mes': return dataNoticia >= mes;
+      case 'hoje': return localNoticia.getTime() === agora.getTime();
+      case 'ontem': return localNoticia.getTime() === ontem.getTime();
+      case 'semana': return localNoticia >= semana;
+      case 'mes': return localNoticia >= mes;
       default: return true;
     }
   });
