@@ -16,12 +16,12 @@
       padding: 1em;
       text-align: center;
     }
-    nav {
+    nav, .busca {
       text-align: center;
       margin: 1em 0;
     }
-    nav button {
-      margin: 0 5px;
+    nav button, .busca button {
+      margin: 5px;
       padding: 0.5em 1em;
       background: #00aced;
       color: white;
@@ -29,8 +29,14 @@
       border-radius: 5px;
       cursor: pointer;
     }
-    nav button:hover {
+    nav button:hover, .busca button:hover {
       background: #0077a3;
+    }
+    .busca input {
+      padding: 0.5em;
+      width: 200px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
     }
     .card {
       background: white;
@@ -56,13 +62,20 @@
     <h1>🗞️ Central de Notícias - Hoje</h1>
     <nav id="editorias">
       <button onclick="carregarEditorias('geral')">Geral</button>
+      <button onclick="carregarEditorias('mundo')">Mundo</button>
+      <button onclick="carregarEditorias('politica')">Política</button>
+      <button onclick="carregarEditorias('economia')">Economia</button>
+      <button onclick="carregarEditorias('ciencia')">Ciência</button>
+      <button onclick="carregarEditorias('saude')">Saúde</button>
       <button onclick="carregarEditorias('tecnologia')">Tecnologia</button>
-      <button onclick="carregarEditorias('negocios')">Negócios</button>
       <button onclick="carregarEditorias('esportes')">Esportes</button>
       <button onclick="carregarEditorias('entretenimento')">Entretenimento</button>
-      <button onclick="carregarEditorias('saude')">Saúde</button>
-      <button onclick="carregarEditorias('ciencia')">Ciência</button>
     </nav>
+
+    <div class="busca">
+      <input type="text" id="termoBusca" placeholder="Buscar por palavra-chave">
+      <button onclick="buscarPorPalavra()">Buscar</button>
+    </div>
   </header>
 
   <main id="noticias"></main>
@@ -70,12 +83,14 @@
   <script>
     const feeds = {
       geral: 'https://news.google.com/rss?hl=pt-BR&gl=BR&ceid=BR:pt-419',
-      tecnologia: 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY.pt_br/tecnologia?hl=pt-BR&gl=BR&ceid=BR:pt-419',
-      negocios: 'https://news.google.com/rss/headlines/section/topic/BUSINESS.pt_br/negocios?hl=pt-BR&gl=BR&ceid=BR:pt-419',
-      esportes: 'https://news.google.com/rss/headlines/section/topic/SPORTS.pt_br/esportes?hl=pt-BR&gl=BR&ceid=BR:pt-419',
-      entretenimento: 'https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT.pt_br/entretenimento?hl=pt-BR&gl=BR&ceid=BR:pt-419',
+      mundo: 'https://news.google.com/rss/headlines/section/topic/WORLD.pt_br/mundo?hl=pt-BR&gl=BR&ceid=BR:pt-419',
+      politica: 'https://news.google.com/rss/search?q=política&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+      economia: 'https://news.google.com/rss/search?q=economia&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+      ciencia: 'https://news.google.com/rss/headlines/section/topic/SCIENCE.pt_br/ciencia?hl=pt-BR&gl=BR&ceid=BR:pt-419',
       saude: 'https://news.google.com/rss/headlines/section/topic/HEALTH.pt_br/saude?hl=pt-BR&gl=BR&ceid=BR:pt-419',
-      ciencia: 'https://news.google.com/rss/headlines/section/topic/SCIENCE.pt_br/ciencia?hl=pt-BR&gl=BR&ceid=BR:pt-419'
+      tecnologia: 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY.pt_br/tecnologia?hl=pt-BR&gl=BR&ceid=BR:pt-419',
+      esportes: 'https://news.google.com/rss/headlines/section/topic/SPORTS.pt_br/esportes?hl=pt-BR&gl=BR&ceid=BR:pt-419',
+      entretenimento: 'https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT.pt_br/entretenimento?hl=pt-BR&gl=BR&ceid=BR:pt-419'
     };
 
     function carregarEditorias(editoria) {
@@ -109,6 +124,48 @@
         })
         .catch(err => {
           noticias.innerHTML = `<p>Erro ao carregar notícias: ${err.message}</p>`;
+        });
+    }
+
+    function buscarPorPalavra() {
+      const termo = document.getElementById("termoBusca").value.trim();
+      if (!termo) return;
+
+      const rssBusca = `https://news.google.com/rss/search?q=${encodeURIComponent(termo)}&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
+      const noticias = document.getElementById("noticias");
+      noticias.innerHTML = "<p>Buscando notícias...</p>";
+
+      fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(rssBusca)}`)
+        .then(response => response.json())
+        .then(data => {
+          const parser = new DOMParser();
+          const xml = parser.parseFromString(data.contents, "application/xml");
+          const items = xml.querySelectorAll("item");
+          noticias.innerHTML = "";
+
+          if (items.length === 0) {
+            noticias.innerHTML = "<p>Nenhuma notícia encontrada.</p>";
+            return;
+          }
+
+          items.forEach(item => {
+            const title = item.querySelector("title").textContent;
+            const link = item.querySelector("link").textContent;
+            const description = item.querySelector("description").textContent;
+            const pubDate = new Date(item.querySelector("pubDate").textContent);
+
+            const card = document.createElement("div");
+            card.className = "card";
+            card.innerHTML = `
+              <h3><a href="${link}" target="_blank">${title}</a></h3>
+              <p>${description}</p>
+              <small>${pubDate.toLocaleTimeString('pt-BR')} - ${pubDate.toLocaleDateString('pt-BR')}</small>
+            `;
+            noticias.appendChild(card);
+          });
+        })
+        .catch(err => {
+          noticias.innerHTML = `<p>Erro ao buscar notícias: ${err.message}</p>`;
         });
     }
 
