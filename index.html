@@ -183,6 +183,12 @@
       <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f6f0.png" alt="Radar Icon" />
       <span>Radar de Notícias</span>
     </div>
+    <div style="font-size:0.97em; margin-top:0.4em; color:#aaa;">
+      Desenvolvido por: 
+      <a href="mailto:guilherme.giuntini@telefonica.com" style="color:#00aced; text-decoration:underline;">
+        Guilherme Giuntini
+      </a>
+    </div>
     <!-- MENU DE EDITORIAS -->
     <nav class="menu-editorias" id="menuEditorias">
       <!-- Os botões serão inseridos via JS -->
@@ -192,6 +198,7 @@
       <button onclick="buscarPorPalavra()">Buscar</button>
     </div>
     <div class="contador" id="contador"></div>
+    <div id="refresh-timer" style="font-size:0.95em; color:#aaa; margin-top:0.5em;"></div>
   </header>
   <main id="noticias"></main>
   <script>
@@ -448,10 +455,42 @@ function buscarPorPalavra() {
     });
 }
 
+// --- AUTO REFRESH DE 15 MINUTOS ---
+let refreshInterval = 15 * 60; // segundos
+let refreshCountdown = refreshInterval;
+let refreshTimerId = null;
+
+function atualizarTimerRefresh() {
+  const el = document.getElementById('refresh-timer');
+  if (!el) return;
+  const min = Math.floor(refreshCountdown / 60);
+  const sec = refreshCountdown % 60;
+  el.textContent = `⏳ Atualização automática em ${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')} `;
+}
+
+function iniciarAutoRefresh() {
+  if (refreshTimerId) clearInterval(refreshTimerId);
+  refreshCountdown = refreshInterval;
+  atualizarTimerRefresh();
+  refreshTimerId = setInterval(() => {
+    refreshCountdown--;
+    if (refreshCountdown <= 0) {
+      refreshCountdown = refreshInterval;
+      if (editoriaSelecionada === "Todas") {
+        carregarTodasNoticiasAgrupadas();
+      } else {
+        carregarNoticiasEditoria(editoriaSelecionada);
+      }
+    }
+    atualizarTimerRefresh();
+  }, 1000);
+}
+
 // Inicialização
 window.onload = () => {
   atualizarMenuEditorias();
   carregarTodasNoticiasAgrupadas();
+  iniciarAutoRefresh();
 };
 </script>
 </body>
