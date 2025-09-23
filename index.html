@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Central de Notícias - Meu Painel</title>
+  <title>Radar de Notícias</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -16,6 +16,21 @@
       color: white;
       padding: 1em;
       text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .titulo-radar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5em;
+      font-size: 1.5em;
+    }
+    .titulo-radar img {
+      width: 32px;
+      height: 32px;
+      vertical-align: middle;
     }
     nav, .busca {
       text-align: center;
@@ -81,12 +96,22 @@
       #noticias {
         grid-template-columns: 1fr;
       }
+      .titulo-radar {
+        font-size: 1.1em;
+      }
+      .titulo-radar img {
+        width: 24px;
+        height: 24px;
+      }
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>🗞️ Central de Notícias - Meu Painel</h1>
+    <div class="titulo-radar">
+      <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f6f0.png" alt="Radar Icon" />
+      <span>Radar de Notícias</span>
+    </div>
     <nav id="editorias"></nav>
     <div class="busca">
       <input type="text" id="termoBusca" placeholder="Buscar por palavra-chave">
@@ -126,6 +151,17 @@ function atualizarContador(qtd) {
   document.getElementById("contador").textContent = `🔢 Total de notícias exibidas: ${qtd}`;
 }
 
+function formatarDataAMPM(dataStr) {
+  if (!dataStr) return "";
+  const data = new Date(dataStr);
+  if (isNaN(data)) return "";
+  // Formato: 23/09/2025, 10:15 AM
+  return data.toLocaleString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: true
+  }).replace(',', ' -');
+}
+
 function exibirNoticias(lista) {
   const noticias = document.getElementById("noticias");
   noticias.innerHTML = "";
@@ -145,7 +181,7 @@ function exibirNoticias(lista) {
       card.className = "card";
       card.innerHTML = `
         <h3><a href="${link}" target="_blank">${title}</a></h3>
-        <small style="color:#666;">${pubDate ? ('🕒 ' + new Date(pubDate).toLocaleString('pt-BR')) : ''}</small>
+        <small style="color:#666;">${pubDate ? ('🕒 ' + formatarDataAMPM(pubDate)) : ''}</small>
         <p>${description}</p>
       `;
       noticias.appendChild(card);
@@ -182,12 +218,54 @@ function carregarEditorias(idx) {
   noticias.innerHTML = "<p>Carregando notícias...</p>";
   atualizarContador(0);
 
+  // Para a editoria "Geral", buscar matérias de hoje e de ontem e somar
+  if (feeds[idx].nome === "Geral") {
+    buscarNoticiasHojeOntem(rssUrl);
+    return;
+  }
   fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`)
     .then(response => response.json())
     .then(data => {
       const parser = new DOMParser();
       const xml = parser.parseFromString(data.contents, "application/xml");
       noticiasAtuais = Array.from(xml.querySelectorAll("item"));
+      exibirNoticias(noticiasAtuais);
+    })
+    .catch(err => {
+      noticias.innerHTML = `<p>Erro ao carregar notícias: ${err.message}</p>`;
+    });
+}
+
+function buscarNoticiasHojeOntem(rssUrl) {
+  const noticias = document.getElementById("noticias");
+  noticias.innerHTML = "<p>Carregando notícias de hoje e de ontem...</p>";
+  atualizarContador(0);
+
+  fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`)
+    .then(response => response.json())
+    .then(data => {
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(data.contents, "application/xml");
+      let items = Array.from(xml.querySelectorAll("item"));
+
+      // Filtrar principais de hoje e de ontem
+      const hoje = new Date();
+      hoje.setHours(0,0,0,0);
+      const ontem = new Date(hoje);
+      ontem.setDate(hoje.getDate() - 1);
+
+      // Pega as notícias do feed que têm pubDate de hoje ou ontem
+      const noticiasFiltradas = items.filter(item => {
+        const pubDate = item.querySelector("pubDate")?.textContent;
+        if (!pubDate) return false;
+        const dataNoticia = new Date(pubDate);
+        if (isNaN(dataNoticia)) return false;
+        dataNoticia.setHours(0,0,0,0);
+        return (dataNoticia.getTime() === hoje.getTime() || dataNoticia.getTime() === ontem.getTime());
+      });
+
+      // Se não encontrou, mostra todas normalmente
+      noticiasAtuais = noticiasFiltradas.length ? noticiasFiltradas : items;
       exibirNoticias(noticiasAtuais);
     })
     .catch(err => {
