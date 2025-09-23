@@ -45,14 +45,18 @@
       font-weight: bold;
       margin: 1em 0;
     }
+    #noticias {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1em;
+      padding: 1em;
+    }
     .card {
       background: #ffffff;
       color: #000000;
-      margin: 1em auto;
       padding: 1em;
       border-radius: 8px;
       box-shadow: 0 0 5px rgba(255,255,255,0.1);
-      max-width: 600px;
     }
     .card h3 {
       margin: 0.5em 0;
@@ -94,6 +98,9 @@
       }
       .busca input, .login input {
         width: 90%;
+      }
+      #noticias {
+        grid-template-columns: 1fr;
       }
     }
   </style>
