@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Central de Notícias - Hoje</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #222;
+      color: white;
+      padding: 1em;
+      text-align: center;
+    }
+    nav {
+      text-align: center;
+      margin: 1em 0;
+    }
+    nav button {
+      margin: 0 5px;
+      padding: 0.5em 1em;
+      background: #00aced;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    nav button:hover {
+      background: #0077a3;
+    }
+    .card {
+      background: white;
+      margin: 1em auto;
+      padding: 1em;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      max-width: 600px;
+    }
+    .card h3 {
+      margin: 0.5em 0;
+    }
+    .card p {
+      color: #333;
+    }
+    .card small {
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🗞️ Central de Notícias - Hoje</h1>
+    <nav id="editorias">
+      <button onclick="carregarEditorias('geral')">Geral</button>
+      <button onclick="carregarEditorias('tecnologia')">Tecnologia</button>
+      <button onclick="carregarEditorias('negocios')">Negócios</button>
+      <button onclick="carregarEditorias('esportes')">Esportes</button>
+      <button onclick="carregarEditorias('entretenimento')">Entretenimento</button>
+      <button onclick="carregarEditorias('saude')">Saúde</button>
+      <button onclick="carregarEditorias('ciencia')">Ciência</button>
+    </nav>
+  </header>
+
+  <main id="noticias"></main>
+
+  <script>
+    const feeds = {
+      geral: 'https://news.google.com/rss?hl=pt-BR&gl=BR&ceid=BR:pt-419',
+      tecnologia: 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY.pt_br/tecnologia?hl=pt-BR&gl=BR&ceid=BR:pt-419',
+      negocios: 'https://news.google.com/rss/headlines/section/topic/BUSINESS.pt_br/negocios?hl=pt-BR&gl=BR&ceid=BR:pt-419',
+      esportes: 'https://news.google.com/rss/headlines/section/topic/SPORTS.pt_br/esportes?hl=pt-BR&gl=BR&ceid=BR:pt-419',
+      entretenimento: 'https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT.pt_br/entretenimento?hl=pt-BR&gl=BR&ceid=BR:pt-419',
+      saude: 'https://news.google.com/rss/headlines/section/topic/HEALTH.pt_br/saude?hl=pt-BR&gl=BR&ceid=BR:pt-419',
+      ciencia: 'https://news.google.com/rss/headlines/section/topic/SCIENCE.pt_br/ciencia?hl=pt-BR&gl=BR&ceid=BR:pt-419'
+    };
+
+    function carregarEditorias(editoria) {
+      const rssUrl = feeds[editoria];
+      const noticias = document.getElementById("noticias");
+      noticias.innerHTML = "<p>Carregando notícias...</p>";
+
+      fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`)
+        .then(response => response.json())
+        .then(data => {
+          const parser = new DOMParser();
+          const xml = parser.parseFromString(data.contents, "application/xml");
+          const items = xml.querySelectorAll("item");
+          noticias.innerHTML = "";
+
+          items.forEach(item => {
+            const title = item.querySelector("title").textContent;
+            const link = item.querySelector("link").textContent;
+            const description = item.querySelector("description").textContent;
+            const pubDate = new Date(item.querySelector("pubDate").textContent);
+
+            const card = document.createElement("div");
+            card.className = "card";
+            card.innerHTML = `
+              <h3><a href="${link}" target="_blank">${title}</a></h3>
+              <p>${description}</p>
+              <small>${pubDate.toLocaleTimeString('pt-BR')} - ${pubDate.toLocaleDateString('pt-BR')}</small>
+            `;
+            noticias.appendChild(card);
+          });
+        })
+        .catch(err => {
+          noticias.innerHTML = `<p>Erro ao carregar notícias: ${err.message}</p>`;
+        });
+    }
+
+    // Carrega notícias gerais ao iniciar
+    carregarEditorias('geral');
+  </script>
+</body>
+</html>
