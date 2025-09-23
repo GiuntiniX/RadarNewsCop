@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Radar de Notícias</title>
+  <title>Central de Notícias - Meu Painel</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -30,6 +30,11 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
+      outline: none;
+    }
+    nav button.active {
+      background: #0077a3;
+      font-weight: bold;
     }
     nav button:hover, .busca button:hover {
       background: #0077a3;
@@ -82,17 +87,7 @@
 <body>
   <header>
     <h1>🗞️ Central de Notícias - Meu Painel</h1>
-    <nav id="editorias">
-      <button onclick="carregarEditorias('geral')">Geral</button>
-      <button onclick="carregarEditorias('mundo')">Mundo</button>
-      <button onclick="carregarEditorias('politica')">Política</button>
-      <button onclick="carregarEditorias('economia')">Economia</button>
-      <button onclick="carregarEditorias('ciencia')">Ciência</button>
-      <button onclick="carregarEditorias('saude')">Saúde</button>
-      <button onclick="carregarEditorias('tecnologia')">Tecnologia</button>
-      <button onclick="carregarEditorias('esportes')">Esportes</button>
-      <button onclick="carregarEditorias('entretenimento')">Entretenimento</button>
-    </nav>
+    <nav id="editorias"></nav>
     <div class="busca">
       <input type="text" id="termoBusca" placeholder="Buscar por palavra-chave">
       <button onclick="buscarPorPalavra()">Buscar</button>
@@ -101,31 +96,31 @@
   </header>
   <main id="noticias"></main>
   <script>
-const feeds = {
-  geral: 'https://news.google.com/rss?hl=pt-BR&gl=BR&ceid=BR:pt-419',
-  mundo: 'https://news.google.com/rss/headlines/section/topic/WORLD.pt_br/mundo?hl=pt-BR&gl=BR&ceid=BR:pt-419',
-  politica: 'https://news.google.com/rss/search?q=política&hl=pt-BR&gl=BR&ceid=BR:pt-419',
-  economia: 'https://news.google.com/rss/search?q=economia&hl=pt-BR&gl=BR&ceid=BR:pt-419',
-  ciencia: 'https://news.google.com/rss/headlines/section/topic/SCIENCE.pt_br/ciencia?hl=pt-BR&gl=BR&ceid=BR:pt-419',
-  saude: 'https://news.google.com/rss/headlines/section/topic/HEALTH.pt_br/saude?hl=pt-BR&gl=BR&ceid=BR:pt-419',
-  tecnologia: 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY.pt_br/tecnologia?hl=pt-BR&gl=BR&ceid=BR:pt-419',
-  esportes: 'https://news.google.com/rss/headlines/section/topic/SPORTS.pt_br/esportes?hl=pt-BR&gl=BR&ceid=BR:pt-419',
-  entretenimento: 'https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT.pt_br/entretenimento?hl=pt-BR&gl=BR&ceid=BR:pt-419'
-};
+const feeds = [
+  { nome: 'Geral', url: 'https://news.google.com/rss?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { nome: 'Mundo', url: 'https://news.google.com/rss/headlines/section/topic/WORLD.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { nome: 'Política', url: 'https://news.google.com/rss/headlines/section/topic/POLITICS.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { nome: 'Negócios', url: 'https://news.google.com/rss/headlines/section/topic/BUSINESS.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { nome: 'Ciência', url: 'https://news.google.com/rss/headlines/section/topic/SCIENCE.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { nome: 'Saúde', url: 'https://news.google.com/rss/headlines/section/topic/HEALTH.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { nome: 'Tecnologia', url: 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { nome: 'Esportes', url: 'https://news.google.com/rss/headlines/section/topic/SPORTS.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { nome: 'Entretenimento', url: 'https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { nome: 'Brasil', url: 'https://news.google.com/rss/headlines/section/geo/Brasil?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { nome: 'Economia', url: 'https://news.google.com/rss/search?q=economia&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { nome: 'Educação', url: 'https://news.google.com/rss/search?q=educação&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { nome: 'Carreira', url: 'https://news.google.com/rss/search?q=carreira&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { nome: 'Meio Ambiente', url: 'https://news.google.com/rss/search?q=meio+ambiente&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { nome: 'Arte', url: 'https://news.google.com/rss/search?q=arte&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { nome: 'Opinião', url: 'https://news.google.com/rss/search?q=opinião&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { nome: 'Moda', url: 'https://news.google.com/rss/search?q=moda&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { nome: 'Culinária', url: 'https://news.google.com/rss/search?q=culinária&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { nome: 'Turismo', url: 'https://news.google.com/rss/search?q=turismo&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { nome: 'Religião', url: 'https://news.google.com/rss/search?q=religião&hl=pt-BR&gl=BR&ceid=BR:pt-419' }
+];
 
-let todasNoticias = [];
-
-function isHojeOuOntem(pubDateStr) {
-  if (!pubDateStr) return false;
-  const pubDate = new Date(pubDateStr);
-  if (isNaN(pubDate)) return false;
-  const agora = new Date();
-  const hoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
-  const ontem = new Date(hoje);
-  ontem.setDate(hoje.getDate() - 1);
-  const pubDay = new Date(pubDate.getFullYear(), pubDate.getMonth(), pubDate.getDate());
-  return pubDay.getTime() === hoje.getTime() || pubDay.getTime() === ontem.getTime();
-}
+let noticiasAtuais = [];
+let editoriaAtual = 0;
 
 function atualizarContador(qtd) {
   document.getElementById("contador").textContent = `🔢 Total de notícias exibidas: ${qtd}`;
@@ -135,7 +130,7 @@ function exibirNoticias(lista) {
   const noticias = document.getElementById("noticias");
   noticias.innerHTML = "";
   if (!lista.length) {
-    noticias.innerHTML = "<p>Nenhuma notícia de hoje ou ontem encontrada.</p>";
+    noticias.innerHTML = "<p>Nenhuma notícia encontrada.</p>";
     atualizarContador(0);
     return;
   }
@@ -159,8 +154,30 @@ function exibirNoticias(lista) {
   atualizarContador(lista.length);
 }
 
-function carregarEditorias(editoria) {
-  const rssUrl = feeds[editoria];
+function carregarEditoriasNav() {
+  const nav = document.getElementById('editorias');
+  feeds.forEach((feed, idx) => {
+    const btn = document.createElement('button');
+    btn.textContent = feed.nome;
+    btn.onclick = () => selecionarEditoria(idx);
+    btn.id = "btn-edit-" + idx;
+    if (idx === 0) btn.className = "active";
+    nav.appendChild(btn);
+  });
+}
+
+function selecionarEditoria(idx) {
+  editoriaAtual = idx;
+  // Atualiza estado visual
+  feeds.forEach((_, i) => {
+    const btn = document.getElementById("btn-edit-" + i);
+    if (btn) btn.classList.toggle("active", i === idx);
+  });
+  carregarEditorias(idx);
+}
+
+function carregarEditorias(idx) {
+  const rssUrl = feeds[idx].url;
   const noticias = document.getElementById("noticias");
   noticias.innerHTML = "<p>Carregando notícias...</p>";
   atualizarContador(0);
@@ -170,10 +187,8 @@ function carregarEditorias(editoria) {
     .then(data => {
       const parser = new DOMParser();
       const xml = parser.parseFromString(data.contents, "application/xml");
-      todasNoticias = Array.from(xml.querySelectorAll("item")).filter(item =>
-        isHojeOuOntem(item.querySelector("pubDate")?.textContent)
-      );
-      exibirNoticias(todasNoticias);
+      noticiasAtuais = Array.from(xml.querySelectorAll("item"));
+      exibirNoticias(noticiasAtuais);
     })
     .catch(err => {
       noticias.innerHTML = `<p>Erro ao carregar notícias: ${err.message}</p>`;
@@ -193,18 +208,19 @@ function buscarPorPalavra() {
     .then(data => {
       const parser = new DOMParser();
       const xml = parser.parseFromString(data.contents, "application/xml");
-      todasNoticias = Array.from(xml.querySelectorAll("item")).filter(item =>
-        isHojeOuOntem(item.querySelector("pubDate")?.textContent)
-      );
-      exibirNoticias(todasNoticias);
+      noticiasAtuais = Array.from(xml.querySelectorAll("item"));
+      exibirNoticias(noticiasAtuais);
     })
     .catch(err => {
       noticias.innerHTML = `<p>Erro ao buscar notícias: ${err.message}</p>`;
     });
 }
 
-// Carrega notícias gerais ao iniciar
-window.onload = () => carregarEditorias('geral');
+// Inicialização
+window.onload = () => {
+  carregarEditoriasNav();
+  selecionarEditoria(0); // Geral selecionado e carregado ao abrir
+};
 </script>
 </body>
 </html>
