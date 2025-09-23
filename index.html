@@ -19,6 +19,7 @@
     nav, .busca, .filtros {
       text-align: center;
       margin: 1em 0;
+      flex-wrap: wrap;
     }
     nav button, .busca button, .filtros button {
       margin: 5px;
@@ -57,11 +58,21 @@
     .card p {
       color: #333;
     }
+    @media (max-width: 600px) {
+      nav button, .busca button, .filtros button {
+        width: 90%;
+        margin: 5px auto;
+        display: block;
+      }
+      .busca input {
+        width: 90%;
+      }
+    }
   </style>
 </head>
 <body>
   <header>
-    <h1>🗞️ Central de Notícias - Hoje</h1>
+    <h1>🗞️ Central de Notícias</h1>
 
     <nav id="editorias">
       <button onclick="carregarEditorias('geral')">Geral</button>
