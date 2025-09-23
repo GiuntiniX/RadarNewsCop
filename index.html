@@ -32,6 +32,34 @@
       height: 32px;
       vertical-align: middle;
     }
+
+    /* MENU DE EDITORIA */
+    nav.menu-editorias {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.5em;
+      margin: 1em 0 0.5em 0;
+    }
+    .menu-editorias button {
+      background: #23272b;
+      color: #fff;
+      border: none;
+      border-radius: 5px 5px 0 0;
+      padding: 0.5em 1em;
+      margin: 0;
+      cursor: pointer;
+      font-size: 1em;
+      transition: background 0.2s;
+      outline: none;
+    }
+    .menu-editorias button.selected,
+    .menu-editorias button:hover {
+      background: #00aced;
+      color: #fff;
+      font-weight: bold;
+    }
+
     .busca {
       text-align: center;
       margin: 1em 0;
@@ -119,6 +147,15 @@
       color: #333;
     }
     @media (max-width: 600px) {
+      .menu-editorias {
+        flex-direction: column;
+        gap: 0;
+      }
+      .menu-editorias button {
+        border-radius: 0;
+        margin-bottom: 2px;
+        width: 100%;
+      }
       .busca button {
         width: 90%;
         margin: 5px auto;
@@ -146,6 +183,10 @@
       <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f6f0.png" alt="Radar Icon" />
       <span>Radar de Notícias</span>
     </div>
+    <!-- MENU DE EDITORIAS -->
+    <nav class="menu-editorias" id="menuEditorias">
+      <!-- Os botões serão inseridos via JS -->
+    </nav>
     <div class="busca">
       <input type="text" id="termoBusca" placeholder="Buscar por palavra-chave">
       <button onclick="buscarPorPalavra()">Buscar</button>
@@ -179,6 +220,7 @@ const feeds = [
 
 let noticiasAtuais = [];
 let noticiasPorData = {};
+let editoriaSelecionada = "Todas"; // "Todas" = todos os feeds
 
 function atualizarContador(qtd) {
   document.getElementById("contador").textContent = `🔢 Total de notícias exibidas: ${qtd}`;
@@ -225,13 +267,11 @@ function agruparPorDatas(lista) {
     const diffSeg = Math.floor((agora.getTime() - dataNoticia.getTime())/1000);
     const diffMin = Math.floor(diffSeg/60);
 
-    // Agrupamentos
     if (diffSeg <= 1) {
       grupos['último segundo'].push(item);
     } else if (diffMin < 1) {
       grupos['último minuto'].push(item);
     } else {
-      // Ajusta para comparar só dia/mes/ano
       const localNoticia = new Date(dataNoticia.getFullYear(), dataNoticia.getMonth(), dataNoticia.getDate());
       if (localNoticia.getTime() === hoje.getTime()) {
         grupos['hoje'].push(item);
@@ -251,7 +291,6 @@ function exibirNoticiasAgrupadas(grupos) {
   const noticias = document.getElementById("noticias");
   noticias.innerHTML = "";
   let total = 0;
-  // Ordem da exibição
   const ordem = ['último segundo', 'último minuto', 'hoje', 'ontem', 'última semana', 'anteriores'];
   ordem.forEach(grupo => {
     const lista = grupos[grupo];
@@ -260,11 +299,9 @@ function exibirNoticiasAgrupadas(grupos) {
     const sessao = document.createElement('section');
     sessao.className = 'sessao-data';
     sessao.innerHTML = `<div>${grupo.toUpperCase()} (${lista.length})</div>`;
-    
     const cards = document.createElement('div');
     cards.className = 'cards-agrupados';
 
-    // Destaques/Breaking news no topo (max 3)
     let breaking = lista.filter(item => {
       const title = item.querySelector("title")?.textContent || "";
       const desc = item.querySelector("description")?.textContent || "";
@@ -291,7 +328,6 @@ function exibirNoticiasAgrupadas(grupos) {
         cards.appendChild(card);
       } catch (e) {}
     });
-
     sessao.appendChild(cards);
     noticias.appendChild(sessao);
   });
@@ -300,6 +336,8 @@ function exibirNoticiasAgrupadas(grupos) {
 
 // Carrega notícias de todos os feeds, exibe agrupadas
 async function carregarTodasNoticiasAgrupadas() {
+  editoriaSelecionada = "Todas";
+  atualizarMenuEditorias();
   document.getElementById("noticias").innerHTML = "<p>Carregando notícias de todas as editorias...</p>";
   atualizarContador(0);
 
@@ -316,7 +354,6 @@ async function carregarTodasNoticiasAgrupadas() {
       // Ignora erro de feed individual
     }
   }
-  // Ordena por data (mais recente primeiro)
   todasNoticias.sort((a, b) => {
     const dateA = new Date(a.querySelector("pubDate")?.textContent || 0);
     const dateB = new Date(b.querySelector("pubDate")?.textContent || 0);
@@ -327,19 +364,71 @@ async function carregarTodasNoticiasAgrupadas() {
   exibirNoticiasAgrupadas(grupos);
 }
 
+// Carrega notícias apenas de uma editoria específica
+async function carregarNoticiasEditoria(nomeEditoria) {
+  editoriaSelecionada = nomeEditoria;
+  atualizarMenuEditorias();
+  document.getElementById("noticias").innerHTML = `<p>Carregando notícias de <b>${nomeEditoria}</b>...</p>`;
+  atualizarContador(0);
+
+  const feed = feeds.find(f => f.nome === nomeEditoria);
+  if (!feed) {
+    carregarTodasNoticiasAgrupadas();
+    return;
+  }
+  try {
+    const resp = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(feed.url)}`);
+    const data = await resp.json();
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(data.contents, "application/xml");
+    noticiasAtuais = Array.from(xml.querySelectorAll("item"));
+    noticiasAtuais.sort((a, b) => {
+      const dateA = new Date(a.querySelector("pubDate")?.textContent || 0);
+      const dateB = new Date(b.querySelector("pubDate")?.textContent || 0);
+      return dateB - dateA;
+    });
+    const grupos = agruparPorDatas(noticiasAtuais);
+    exibirNoticiasAgrupadas(grupos);
+  } catch (err) {
+    document.getElementById("noticias").innerHTML = `<p>Erro ao carregar notícias!</p>`;
+  }
+}
+
+// Atualiza o menu, destacando o botão selecionado
+function atualizarMenuEditorias() {
+  const nav = document.getElementById("menuEditorias");
+  nav.innerHTML = "";
+  // Adiciona botão "Todas"
+  const btnTodas = document.createElement("button");
+  btnTodas.textContent = "Todas";
+  btnTodas.className = (editoriaSelecionada === "Todas" ? "selected" : "");
+  btnTodas.onclick = () => carregarTodasNoticiasAgrupadas();
+  nav.appendChild(btnTodas);
+  // Adiciona cada editoria
+  feeds.forEach(feed => {
+    const btn = document.createElement("button");
+    btn.textContent = feed.nome;
+    btn.className = (editoriaSelecionada === feed.nome ? "selected" : "");
+    btn.onclick = () => carregarNoticiasEditoria(feed.nome);
+    nav.appendChild(btn);
+  });
+}
+
 // Busca por palavra-chave em todos feeds
 function buscarPorPalavra() {
   const termo = document.getElementById("termoBusca").value.trim();
   if (!termo) {
-    carregarTodasNoticiasAgrupadas();
+    if (editoriaSelecionada === "Todas") {
+      carregarTodasNoticiasAgrupadas();
+    } else {
+      carregarNoticiasEditoria(editoriaSelecionada);
+    }
     return;
   }
   document.getElementById("noticias").innerHTML = "<p>Buscando notícias...</p>";
   atualizarContador(0);
-
   // Busca só no Google News, mas poderia fazer por todos feeds (para simplificar)
   const rssBusca = `https://news.google.com/rss/search?q=${encodeURIComponent(termo)}&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
-
   fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(rssBusca)}`)
     .then(response => response.json())
     .then(data => {
@@ -361,6 +450,7 @@ function buscarPorPalavra() {
 
 // Inicialização
 window.onload = () => {
+  atualizarMenuEditorias();
   carregarTodasNoticiasAgrupadas();
 };
 </script>
