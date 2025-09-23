@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Central de Notícias - Meu Painel</title>
+  <title>Radar de Notícias</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -17,12 +17,12 @@
       padding: 1em;
       text-align: center;
     }
-    nav, .busca, .login, .painel {
+    nav, .busca {
       text-align: center;
       margin: 1em 0;
       flex-wrap: wrap;
     }
-    nav button, .busca button, .login button, .painel button {
+    nav button, .busca button {
       margin: 5px;
       padding: 0.5em 1em;
       background: #00aced;
@@ -31,10 +31,10 @@
       border-radius: 5px;
       cursor: pointer;
     }
-    nav button:hover, .busca button:hover, .login button:hover, .painel button:hover {
+    nav button:hover, .busca button:hover {
       background: #0077a3;
     }
-    .busca input, .login input {
+    .busca input {
       padding: 0.5em;
       width: 200px;
       border-radius: 5px;
@@ -64,39 +64,13 @@
     .card p {
       color: #333;
     }
-    .tags, .acoes {
-      margin-top: 10px;
-    }
-    .tags button, .acoes button {
-      margin-right: 5px;
-      padding: 0.3em 0.6em;
-      font-size: 0.8em;
-      background: #444;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .tags button.active, .acoes button.active {
-      background: #00aced;
-    }
-    .painel-area {
-      background: #1e1e1e;
-      padding: 1em;
-      margin: 1em auto;
-      max-width: 800px;
-      border-radius: 8px;
-    }
-    .painel-area h2 {
-      color: #00aced;
-    }
     @media (max-width: 600px) {
-      nav button, .busca button, .login button, .painel button {
+      nav button, .busca button {
         width: 90%;
         margin: 5px auto;
         display: block;
       }
-      .busca input, .login input {
+      .busca input {
         width: 90%;
       }
       #noticias {
@@ -108,12 +82,6 @@
 <body>
   <header>
     <h1>🗞️ Central de Notícias - Meu Painel</h1>
-
-    <div class="login">
-      <input type="text" id="usuario" placeholder="Seu nome ou e-mail">
-      <button onclick="entrarPainel()">Entrar</button>
-    </div>
-
     <nav id="editorias">
       <button onclick="carregarEditorias('geral')">Geral</button>
       <button onclick="carregarEditorias('mundo')">Mundo</button>
@@ -125,23 +93,13 @@
       <button onclick="carregarEditorias('esportes')">Esportes</button>
       <button onclick="carregarEditorias('entretenimento')">Entretenimento</button>
     </nav>
-
     <div class="busca">
       <input type="text" id="termoBusca" placeholder="Buscar por palavra-chave">
       <button onclick="buscarPorPalavra()">Buscar</button>
     </div>
-
-    <div class="painel">
-      <button onclick="mostrarBoletim()">📄 Gerar Boletim</button>
-      <button onclick="filtrarRelevantes()">🔥 Mais Relevantes</button>
-    </div>
-
     <div class="contador" id="contador"></div>
   </header>
-
-  <main id="painel-curadoria"></main>
   <main id="noticias"></main>
-
   <script>
 const feeds = {
   geral: 'https://news.google.com/rss?hl=pt-BR&gl=BR&ceid=BR:pt-419',
@@ -156,15 +114,17 @@ const feeds = {
 };
 
 let todasNoticias = [];
-let usuarioAtual = '';
 
-function entrarPainel() {
-  const nome = document.getElementById("usuario").value.trim();
-  if (!nome) return alert("Digite seu nome ou e-mail");
-  usuarioAtual = nome;
-  alert(`Bem-vindo, ${usuarioAtual}!`);
-  carregarEditorias('geral');
-  mostrarCuradoria();
+function isHojeOuOntem(pubDateStr) {
+  if (!pubDateStr) return false;
+  const pubDate = new Date(pubDateStr);
+  if (isNaN(pubDate)) return false;
+  const agora = new Date();
+  const hoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+  const ontem = new Date(hoje);
+  ontem.setDate(hoje.getDate() - 1);
+  const pubDay = new Date(pubDate.getFullYear(), pubDate.getMonth(), pubDate.getDate());
+  return pubDay.getTime() === hoje.getTime() || pubDay.getTime() === ontem.getTime();
 }
 
 function atualizarContador(qtd) {
@@ -174,40 +134,27 @@ function atualizarContador(qtd) {
 function exibirNoticias(lista) {
   const noticias = document.getElementById("noticias");
   noticias.innerHTML = "";
+  if (!lista.length) {
+    noticias.innerHTML = "<p>Nenhuma notícia de hoje ou ontem encontrada.</p>";
+    atualizarContador(0);
+    return;
+  }
   lista.forEach(item => {
-    const title = item.querySelector("title").textContent;
-    const link = item.querySelector("link").textContent;
-    const description = item.querySelector("description").textContent;
-    const id = btoa(link);
+    try {
+      const title = item.querySelector("title").textContent;
+      const link = item.querySelector("link").textContent;
+      const description = item.querySelector("description")?.textContent || "";
+      const pubDate = item.querySelector("pubDate")?.textContent || "";
 
-    const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `
-      <h3><a href="${link}" target="_blank">${title}</a></h3>
-      <p>${description}</p>
-      <div class="acoes">
-        <button onclick="favoritar('${id}', '${title}', '${link}')">⭐ Favoritar</button>
-        <button onclick="destacar('${id}', '${title}', '${link}')">📌 Destacar</button>
-        <button onclick="compartilhar('${link}')">🔗 Compartilhar</button>
-      </div>
-      <div class="tags">
-        <button onclick="marcarTag('${id}', 'Urgente', this)">Urgente</button>
-        <button onclick="marcarTag('${id}', 'Para reunião', this)">Para reunião</button>
-        <button onclick="marcarTag('${id}', 'Inspirador', this)">Inspirador</button>
-      </div>
-    `;
-
-    const tagsSalvas = JSON.parse(localStorage.getItem(`${usuarioAtual}_tags`) || '{}');
-    if (tagsSalvas[id]) {
-      const buttons = card.querySelectorAll(".tags button");
-      buttons.forEach(btn => {
-        if (tagsSalvas[id].includes(btn.textContent)) {
-          btn.classList.add("active");
-        }
-      });
-    }
-
-    noticias.appendChild(card);
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <h3><a href="${link}" target="_blank">${title}</a></h3>
+        <small style="color:#666;">${pubDate ? ('🕒 ' + new Date(pubDate).toLocaleString('pt-BR')) : ''}</small>
+        <p>${description}</p>
+      `;
+      noticias.appendChild(card);
+    } catch (e) {}
   });
   atualizarContador(lista.length);
 }
@@ -223,7 +170,9 @@ function carregarEditorias(editoria) {
     .then(data => {
       const parser = new DOMParser();
       const xml = parser.parseFromString(data.contents, "application/xml");
-      todasNoticias = Array.from(xml.querySelectorAll("item"));
+      todasNoticias = Array.from(xml.querySelectorAll("item")).filter(item =>
+        isHojeOuOntem(item.querySelector("pubDate")?.textContent)
+      );
       exibirNoticias(todasNoticias);
     })
     .catch(err => {
@@ -234,7 +183,6 @@ function carregarEditorias(editoria) {
 function buscarPorPalavra() {
   const termo = document.getElementById("termoBusca").value.trim();
   if (!termo) return;
-
   const rssBusca = `https://news.google.com/rss/search?q=${encodeURIComponent(termo)}&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
   const noticias = document.getElementById("noticias");
   noticias.innerHTML = "<p>Buscando notícias...</p>";
@@ -245,7 +193,9 @@ function buscarPorPalavra() {
     .then(data => {
       const parser = new DOMParser();
       const xml = parser.parseFromString(data.contents, "application/xml");
-      todasNoticias = Array.from(xml.querySelectorAll("item"));
+      todasNoticias = Array.from(xml.querySelectorAll("item")).filter(item =>
+        isHojeOuOntem(item.querySelector("pubDate")?.textContent)
+      );
       exibirNoticias(todasNoticias);
     })
     .catch(err => {
@@ -253,79 +203,8 @@ function buscarPorPalavra() {
     });
 }
 
-function marcarTag(id, tag, btn) {
-  if (!usuarioAtual) return alert("Faça login primeiro");
-  const key = `${usuarioAtual}_tags`;
-  const tags = JSON.parse(localStorage.getItem(key) || '{}');
-  tags[id] = tags[id] || [];
-
-  if (tags[id].includes(tag)) {
-    tags[id] = tags[id].filter(t => t !== tag);
-    btn.classList.remove("active");
-  } else {
-    tags[id].push(tag);
-    btn.classList.add("active");
-  }
-
-  localStorage.setItem(key, JSON.stringify(tags));
-}
-
-function favoritar(id, title, link) {
-  const key = `${usuarioAtual}_favoritos`;
-  const favoritos = JSON.parse(localStorage.getItem(key) || '[]');
-  if (!favoritos.find(f => f.id === id)) {
-    favoritos.push({ id, title, link });
-    localStorage.setItem(key, JSON.stringify(favoritos));
-    mostrarCuradoria();
-  }
-}
-
-function destacar(id, title, link) {
-  const key = `${usuarioAtual}_destaques`;
-  const destaques = JSON.parse(localStorage.getItem(key) || '[]');
-  if (!destaques.find(d => d.id === id)) {
-    destaques.push({ id, title, link });
-    localStorage.setItem(key, JSON.stringify(destaques));
-    mostrarCuradoria();
-  }
-}
-
-function compartilhar(link) {
-  navigator.clipboard.writeText(link);
-  alert("Link copiado para área de transferência!");
-}
-
-function mostrarCuradoria() {
-  const painel = document.getElementById("painel-curadoria");
-  const favoritos = JSON.parse(localStorage.getItem(`${usuarioAtual}_favoritos`) || '[]');
-  const destaques = JSON.parse(localStorage.getItem(`${usuarioAtual}_destaques`) || '[]');
-
-  painel.innerHTML = `
-    <div class="painel-area">
-      <h2>📌 Meus Destaques</h2>
-      ${destaques.map(d => `<p><a href="${d.link}" target="_blank">${d.title}</a></p>`).join('') || '<p>Nenhum destaque ainda.</p>'}
-      <h2>⭐ Meus Favoritos</h2>
-      ${favoritos.map(f => `<p><a href="${f.link}" target="_blank">${f.title}</a></p>`).join('') || '<p>Nenhum favorito ainda.</p>'}
-    </div>
-  `;
-}
-
-function mostrarBoletim() {
-  const destaques = JSON.parse(localStorage.getItem(`${usuarioAtual}_destaques`) || '[]');
-  if (destaques.length === 0) return alert("Nenhum destaque para gerar boletim.");
-  const texto = destaques.map(d => `• ${d.title}\n${d.link}`).join('\n\n');
-  navigator.clipboard.writeText(texto);
-  alert("Boletim copiado! Cole em seu e-mail ou documento.");
-}
-
-function filtrarRelevantes() {
-  const palavrasChave = ['brasil', 'tecnologia', 'eleições', 'economia', 'inteligência artificial'];
-  const filtradas = todasNoticias.filter(item => {
-    const title = item.querySelector("title").textContent.toLowerCase();
-    return palavrasChave.some(p => title.includes(p));
-  });
-  exibirNoticias(filtradas);
-}
+// Carrega notícias gerais ao iniciar
+window.onload = () => carregarEditorias('geral');
 </script>
 </body>
 </html>
