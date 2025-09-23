@@ -38,6 +38,11 @@
       border-radius: 5px;
       border: 1px solid #ccc;
     }
+    .contador {
+      text-align: center;
+      font-weight: bold;
+      margin: 1em 0;
+    }
     .card {
       background: white;
       margin: 1em auto;
@@ -51,9 +56,6 @@
     }
     .card p {
       color: #333;
-    }
-    .card small {
-      color: #666;
     }
   </style>
 </head>
@@ -76,6 +78,8 @@
       <input type="text" id="termoBusca" placeholder="Buscar por palavra-chave">
       <button onclick="buscarPorPalavra()">Buscar</button>
     </div>
+
+    <div class="contador" id="contador"></div>
   </header>
 
   <main id="noticias"></main>
@@ -93,10 +97,16 @@
       entretenimento: 'https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT.pt_br/entretenimento?hl=pt-BR&gl=BR&ceid=BR:pt-419'
     };
 
+    function atualizarContador(qtd) {
+      const contador = document.getElementById("contador");
+      contador.textContent = `🔢 Total de notícias exibidas: ${qtd}`;
+    }
+
     function carregarEditorias(editoria) {
       const rssUrl = feeds[editoria];
       const noticias = document.getElementById("noticias");
       noticias.innerHTML = "<p>Carregando notícias...</p>";
+      atualizarContador(0);
 
       fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`)
         .then(response => response.json())
@@ -110,17 +120,17 @@
             const title = item.querySelector("title").textContent;
             const link = item.querySelector("link").textContent;
             const description = item.querySelector("description").textContent;
-            const pubDate = new Date(item.querySelector("pubDate").textContent);
 
             const card = document.createElement("div");
             card.className = "card";
             card.innerHTML = `
               <h3><a href="${link}" target="_blank">${title}</a></h3>
               <p>${description}</p>
-              <small>${pubDate.toLocaleTimeString('pt-BR')} - ${pubDate.toLocaleDateString('pt-BR')}</small>
             `;
             noticias.appendChild(card);
           });
+
+          atualizarContador(items.length);
         })
         .catch(err => {
           noticias.innerHTML = `<p>Erro ao carregar notícias: ${err.message}</p>`;
@@ -134,6 +144,7 @@
       const rssBusca = `https://news.google.com/rss/search?q=${encodeURIComponent(termo)}&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
       const noticias = document.getElementById("noticias");
       noticias.innerHTML = "<p>Buscando notícias...</p>";
+      atualizarContador(0);
 
       fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(rssBusca)}`)
         .then(response => response.json())
@@ -152,17 +163,17 @@
             const title = item.querySelector("title").textContent;
             const link = item.querySelector("link").textContent;
             const description = item.querySelector("description").textContent;
-            const pubDate = new Date(item.querySelector("pubDate").textContent);
 
             const card = document.createElement("div");
             card.className = "card";
             card.innerHTML = `
               <h3><a href="${link}" target="_blank">${title}</a></h3>
               <p>${description}</p>
-              <small>${pubDate.toLocaleTimeString('pt-BR')} - ${pubDate.toLocaleDateString('pt-BR')}</small>
             `;
             noticias.appendChild(card);
           });
+
+          atualizarContador(items.length);
         })
         .catch(err => {
           noticias.innerHTML = `<p>Erro ao buscar notícias: ${err.message}</p>`;
