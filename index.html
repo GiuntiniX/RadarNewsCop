@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="utf-8" />
-  <title>Radar de Notícias — Classificação Automática</title>
+  <meta charset="utf-8">
+  <title>Radar de Notícias — Melhorias Aplicadas</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root{
@@ -13,6 +13,7 @@
       --card:#ffffff;
       --card-text:#111;
       --gap:14px;
+      --page-size:20;
     }
     *{box-sizing:border-box}
     body{
@@ -20,6 +21,7 @@
       font-family:Inter, "Segoe UI", Roboto, Arial, sans-serif;
       background:var(--bg);
       color:#e8eef0;
+      -webkit-font-smoothing:antialiased;
     }
 
     header{
@@ -28,7 +30,7 @@
       padding:14px 16px;
       position:sticky;
       top:0;
-      z-index:50;
+      z-index:80;
     }
     .header-inner{
       max-width:1200px;
@@ -45,7 +47,7 @@
     .meta{color:var(--muted);font-size:0.88rem}
     .meta a{color:var(--accent);text-decoration:underline}
 
-    /* Menu único apenas com editorias */
+    /* Menu único apenas editorias */
     .menu-area{
       max-width:1200px;
       margin:12px auto 0;
@@ -116,11 +118,16 @@
       min-height:130px;
     }
     .card h3{margin:0 0 6px;font-size:1rem}
-    .card p{margin:0 0 8px;color:#333;flex:1;font-size:0.95rem}
+    .card h3 a{ color: inherit; text-decoration:none }
+    .card p{margin:0 0 8px;color:#333;flex:1;font-size:0.95rem; overflow:hidden; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical}
     .card small{color:#666;display:block;margin-bottom:6px}
     .meta-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
     .source-pill{background:rgba(0,0,0,0.03);padding:6px 8px;border-radius:999px;font-size:0.85rem;color:#444}
     .editoria-pill{background:#00aced;color:#041114;padding:6px 8px;border-radius:8px;font-weight:700;font-size:0.82rem}
+
+    /* Load more */
+    .load-more-wrap{ display:flex; justify-content:center; margin:18px 0 }
+    .btn-load-more{ padding:10px 14px; border-radius:10px; background:transparent; border:1px solid rgba(255,255,255,0.06); color:var(--muted); cursor:pointer }
 
     /* sidebar */
     .sidebar{ position:relative }
@@ -147,7 +154,7 @@
       </div>
       <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
         <div class="timer" id="refresh-timer">⏳ Atualização automática em --:--</div>
-        <button class="btn" id="btn-refresh" onclick="refreshNoticias()">🔄 Atualizar agora</button>
+        <button class="btn" id="btn-refresh" onclick="refreshNoticias()" title="Atualizar agora">🔄 Atualizar agora</button>
       </div>
     </div>
 
@@ -167,7 +174,7 @@
 
   <div class="container">
     <main class="main" id="noticias" aria-live="polite">
-      <!-- cards-grid será inserido aqui -->
+      <!-- cards-grid + load more -->
     </main>
 
     <aside class="sidebar" aria-label="Mais publicadas">
@@ -177,24 +184,22 @@
   </div>
 
 <script>
-/*
-  Implementação solicitada:
-  - Removi subeditorias (painel de subcategorias).
-  - Trago todas as notícias (como antes): coleta ampla de feeds incluindo Google News *.
-  - NÃO agrego artigos no feed principal: um card = uma matéria.
-  - Adicionei classificação automática "inteligente" que atribui cada notícia a uma das editorias disponíveis.
-    Essa classificação é por heurística de palavras-chaves (pontuação por categoria) aplicada ao título+descrição.
-  - O menu principal continua mostrando editorias; ao clicar em uma editoria será filtrada a lista já classificada,
-    exibindo apenas as matérias atribuídas a essa editoria. "Todas" mostra tudo.
-  Observação: Este classificadora é leve (client-side), funciona bem em grande parte dos casos. Se quiser, eu posso
-  substituir por uma chamada a serviço de NLP mais avançado (API) para melhorar precisão.
+/* Changes made: updated sidebar behavior so clicking an editoria filters "Mais publicadas"
+   to show the top 5 most published items for that editoria (within the last 5 hours).
+   For the global "Todas" view the sidebar keeps showing up to 12 items.
 */
 
-// Feeds: Google News geral (*) + editorias e buscas amplas
+/* ---------------- CONFIGURAÇÕES ---------------- */
+const PAGE_SIZE = 20;
+const CACHE_TTL_MS = 5 * 60 * 1000;
+const MAX_CONCURRENCY = 6;
+const FEED_PROXY = 'https://api.allorigins.win/get?url=';
+
+/* ---------------- FEEDS E EDITORIAS ---------------- */
 const feeds = [
   { nome: 'Tudo (GoogleNews *)', url: 'https://news.google.com/rss/search?q=*&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
   { nome: 'Principal (GoogleNews)', url: 'https://news.google.com/rss?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
-  // editorias / buscas mais amplas
+
   { nome: 'Geral', url: 'https://news.google.com/rss/headlines/section/topic/NATION.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
   { nome: 'Brasil', url: 'https://news.google.com/rss/headlines/section/geo/Brasil?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
   { nome: 'Mundo', url: 'https://news.google.com/rss/headlines/section/topic/WORLD.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
@@ -218,101 +223,166 @@ const feeds = [
   { nome: 'Esportes', url: 'https://news.google.com/rss/headlines/section/topic/SPORTS.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419' }
 ];
 
-// Lista de editorias que o sistema usará (menu)
 const EDITORIAS = [
   'Todas','Geral','Brasil','Mundo','Política','Economia','Ciência','Saúde',
   'Educação','Meio Ambiente','Tecnologia','Negócios','Cultura','Entretenimento',
   'Arte','Moda','Culinária','Turismo','Religião','Carreira','Opinião','Esportes'
 ];
 
-// Palavras-chave por editoria (base da classificação automática).
-// Quanto mais palavras por editoria, maior a chance de acerto.
-// Você pode afinar/expandir essas listas conforme necessário.
+/* ---------------- CLASSIFICADOR HEURÍSTICO ---------------- */
 const KEYWORDS = {
-  'Política': ['presidente','governo','ministro','parlamento','deputado','senador','congresso','eleição','ministério','política','secretário'],
-  'Economia': ['economia','bancos','juros','inflação','ibge','câmbio','bolsa','mercado','investimento','PIB','empresa','empresas','setor financeiro'],
-  'Ciência': ['pesquisa','científico','estudo','laboratório','cientistas','universidade','descoberta','científica','estudo'],
-  'Saúde': ['saúde','paciente','hospital','vacina','doutor','epidemia','pandemia','SUS','doença','clínico','médico'],
-  'Educação': ['escola','ensino','universidade','professor','aluno','vestibular','educação','ensino médio','ensino básico'],
-  'Meio Ambiente': ['clima','meio ambiente','sustentabilidade','desmatamento','fauna','flora','desastre ambiental','emissões'],
-  'Tecnologia': ['tecnologia','app','aplicativo','inteligência artificial','ia','startup','software','hardware','gadgets','blockchain','criptomoeda'],
-  'Negócios': ['empresa','negócios','fusões','aquisição','CEO','executivo','startup','investidor','contrato','finanças'],
-  'Cultura': ['cultura','evento cultural','festival','museu','exposição','cultural'],
-  'Entretenimento': ['entretenimento','álbum','turnê','filme','cinema','ator','atriz','estreia','entrevista','celebridade'],
-  'Arte': ['arte','obra','exposição','galeria','pintura','escultura'],
-  'Moda': ['moda','desfile','estilista','coleção','tendência'],
-  'Culinária': ['culinária','receita','chefe','restaurante','gastronomia','prato'],
-  'Turismo': ['turismo','destino','hotel','viagem','roteiro','voo'],
-  'Religião': ['igreja','religião','pastor','culto','fé','obispo','evangélico','católico'],
-  'Carreira': ['carreira','emprego','vaga','salário','currículo','recrutamento'],
-  'Opinião': ['opinião','coluna','editorial','artigo de opinião'],
-  'Esportes': ['gol','jogo','partida','time','campeonato','futebol','basquete','natação','voleibol','fórmula 1','F1','Copa']
+  'Política': ['presidente','governo','ministro','parlamento','deputado','senador','congresso','eleicao','politica'],
+  'Economia': ['economia','banco','juros','inflat','ibge','cambio','bolsa','mercado','investimento','pib'],
+  'Ciência': ['pesquisa','cientifico','laboratorio','cientista','descoberta','estudo'],
+  'Saúde': ['saude','hospital','vacina','epidemia','pandemia','sintoma','paciente','medico'],
+  'Educação': ['escola','ensino','universidade','professor','aluno','vestibular'],
+  'Meio Ambiente': ['clima','desmatamento','sustentabilidade','emissao','fauna','flora'],
+  'Tecnologia': ['tecnologia','aplicativo','app','inteligencia artificial','ia','startup','software','hardware','gadget','criptomoeda','blockchain'],
+  'Negócios': ['empresa','fusao','aquisicao','ceo','executivo','investidor','contrato','financas'],
+  'Cultura': ['cultura','festival','museu','exposicao'],
+  'Entretenimento': ['filme','cinema','estreia','serie','turne','entrevista','show'],
+  'Arte': ['arte','obra','galeria','pintura','escultura'],
+  'Moda': ['moda','desfile','estilista','colecao','tendencia'],
+  'Culinária': ['culinaria','receita','chefe','restaurante','gastronomia'],
+  'Turismo': ['turismo','destino','hotel','viagem','roteiro'],
+  'Religião': ['igreja','religiao','culto','padre','pastor','fe'],
+  'Carreira': ['carreira','emprego','vaga','salario','recrutamento'],
+  'Opinião': ['opiniao','coluna','editorial'],
+  'Esportes': ['jogo','partida','time','campeonato','gol','futebol','basquete','volei','formula 1','f1','copa']
 };
 
-// normaliza texto (remove acentos, lower)
-function normalizeText(s){
-  return s ? s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase() : '';
+/* ---------------- ESTADO ---------------- */
+let noticiasAtuais = [];
+let displayedCount = 0;
+let editoriaAtiva = 'Todas';
+let isLoading = false;
+
+/* ---------------- UTILIDADES ---------------- */
+function normalize(s){
+  return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+}
+function formatDate(pub){
+  if(!pub) return '';
+  const d = new Date(pub);
+  if(isNaN(d)) return '';
+  return d.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false }).replace(',', ' -');
+}
+function isToday(pub){
+  if(!pub) return false;
+  const d = new Date(pub);
+  if(isNaN(d)) return false;
+  const n = new Date();
+  return d.getFullYear()===n.getFullYear() && d.getMonth()===n.getMonth() && d.getDate()===n.getDate();
 }
 
-// classificação automática: retorna a editoria com maior score (ou 'Geral' em caso de empate/score baixo)
-function classifyArticle(title, description){
-  const text = normalizeText((title || '') + ' ' + (description || ''));
+/* ---------------- CACHE (localStorage) ---------------- */
+function cacheKey(url){ return 'rsscache:' + btoa(url); }
+function readCache(url){
+  try{
+    const raw = localStorage.getItem(cacheKey(url));
+    if(!raw) return null;
+    const obj = JSON.parse(raw);
+    if(!obj.ts || (Date.now() - obj.ts) > CACHE_TTL_MS) {
+      localStorage.removeItem(cacheKey(url));
+      return null;
+    }
+    return obj.contents;
+  }catch(e){
+    return null;
+  }
+}
+function writeCache(url, contents){
+  try{
+    const obj = { ts: Date.now(), contents };
+    localStorage.setItem(cacheKey(url), JSON.stringify(obj));
+  }catch(e){}
+}
+
+/* ---------------- FETCH RSS (com cache e proxy) ---------------- */
+async function fetchRssRaw(url){
+  const cached = readCache(url);
+  if(cached) {
+    return cached;
+  }
+  try {
+    const r = await fetch(FEED_PROXY + encodeURIComponent(url));
+    if(!r.ok) throw new Error('proxy-fail');
+    const data = await r.json();
+    if(data && data.contents) {
+      writeCache(url, data.contents);
+      return data.contents;
+    }
+    return '';
+  } catch(e) {
+    console.warn('Erro ao buscar feed:', url, e);
+    return '';
+  }
+}
+function parseItemsFromXmlString(xmlStr){
+  try{
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xmlStr, 'application/xml');
+    const items = Array.from(doc.querySelectorAll('item'));
+    return items;
+  }catch(e){
+    return [];
+  }
+}
+
+/* ---------------- THROTTLED BATCH FETCH ---------------- */
+async function fetchAllFeedsBatched(feedList){
+  const results = [];
+  const queue = [...feedList];
+  const workers = new Array(MAX_CONCURRENCY).fill(0).map(async () => {
+    while(queue.length){
+      const f = queue.shift();
+      try{
+        const raw = await fetchRssRaw(f.url);
+        const items = raw ? parseItemsFromXmlString(raw) : [];
+        const mapped = items.map(it => {
+          const title = it.querySelector('title')?.textContent || '(sem título)';
+          const link = it.querySelector('link')?.textContent || it.querySelector('guid')?.textContent || '#';
+          const desc = it.querySelector('description')?.textContent || '';
+          const pubDate = it.querySelector('pubDate')?.textContent || '';
+          const source = (()=>{ try { return new URL(link).hostname.replace('www.',''); } catch(e){ return ''; } })();
+          return { title: title.trim(), link, desc: desc.trim(), pubDate, source };
+        });
+        results.push(...mapped);
+      }catch(e){
+        console.warn('Erro processando feed', f.url, e);
+      }
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
+/* ---------------- CLASSIFICADOR ---------------- */
+function classifyArticle(title, desc){
+  const textTitle = normalize(title);
+  const textDesc = normalize(desc);
   let best = 'Geral';
   let bestScore = 0;
-  for(const [editoria, words] of Object.entries(KEYWORDS)){
+  for(const [editoria, keywords] of Object.entries(KEYWORDS)){
     let score = 0;
-    for(const w of words){
-      // palavra simples ou expressão
-      const pattern = '\\b' + w.replace(/\s+/g,'\\s+') + '\\b';
-      const re = new RegExp(pattern,'i');
-      if(re.test(text)) score += 2; // ocorrência exata ganha 2 pontos
-      // partial match
-      if(text.includes(w)) score += 0.5;
+    for(const raw of keywords){
+      const k = normalize(raw);
+      const regex = new RegExp('\\b' + k.replace(/\s+/g,'\\s+') + '\\b','i');
+      if(regex.test(textTitle)) score += 2;
+      else if(textTitle.includes(k)) score += 0.5;
+      if(regex.test(textDesc)) score += 1;
+      else if(textDesc.includes(k)) score += 0.5;
     }
     if(score > bestScore){
       bestScore = score;
       best = editoria;
     }
   }
-  // se score baixo (<1), manter 'Geral'
   if(bestScore < 1) return 'Geral';
   return best;
 }
 
-/* util: formata data */
-function formatarDataAMPM(dataStr){
-  if(!dataStr) return '';
-  const d = new Date(dataStr);
-  if(isNaN(d)) return '';
-  return d.toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false}).replace(',', ' -');
-}
-
-/* util: identifica se data é HOJE (local) */
-function isDateToday(pubDateStr){
-  if(!pubDateStr) return false;
-  const d = new Date(pubDateStr);
-  if(isNaN(d)) return false;
-  const now = new Date();
-  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
-}
-
-/* fetch RSS via proxy */
-async function fetchRss(url){
-  try{
-    const resp = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
-    if(!resp.ok) throw new Error('proxy-fail');
-    const data = await resp.json();
-    const parser = new DOMParser();
-    const xml = parser.parseFromString(data.contents, 'application/xml');
-    const items = Array.from(xml.querySelectorAll('item'));
-    return items;
-  }catch(e){
-    console.warn('Erro ao buscar feed', url, e);
-    return [];
-  }
-}
-
-/* Render menu de editorias */
+/* ---------------- RENDER UI ---------------- */
 function renderEditoriasMenu(){
   const menu = document.getElementById('menuArea');
   menu.innerHTML = '';
@@ -320,212 +390,249 @@ function renderEditoriasMenu(){
     const btn = document.createElement('button');
     btn.className = 'editoria-btn';
     btn.textContent = name;
-    btn.onclick = () => filterByEditoria(name);
+    btn.onclick = () => { filterByEditoria(name); };
     menu.appendChild(btn);
   });
+  highlightActiveEditorias();
+}
+function highlightActiveEditorias(){
+  const btns = document.querySelectorAll('.editoria-btn');
+  btns.forEach(b => b.classList.toggle('active', b.textContent === editoriaAtiva));
 }
 
-/* estado global */
-let noticiasAtuais = []; // array de objetos: {item (XML), editoria, title, link, desc, pubDate, source}
-let editoriaAtiva = 'Todas';
-let isLoading = false;
-
-/* bloquear/desbloquear botões enquanto carrega */
-function setButtonsDisabled(disabled){
-  const buttons = document.querySelectorAll('.editoria-btn');
-  buttons.forEach(b => b.disabled = disabled);
-  isLoading = disabled;
-}
-
-/* Exibir cards (um card por matéria) em grid 2 colunas */
-function renderCards(list){
+function renderCardsPaged(items){
   const main = document.getElementById('noticias');
-  main.innerHTML = '';
-  const grid = document.createElement('div');
-  grid.className = 'cards-grid';
-  let total = 0;
-  list.forEach(a => {
-    try{
-      const card = document.createElement('article');
-      card.className = 'card';
-      card.innerHTML = `
-        <h3><a href="${a.link}" target="_blank" rel="noopener noreferrer">${a.title}</a></h3>
-        <small>🕒 ${a.pubDate ? formatarDataAMPM(a.pubDate) : ''}</small>
-        <p>${a.desc || ''}</p>
-        <div class="meta-row">
-          <div style="display:flex;gap:8px;align-items:center">
-            <div class="source-pill">${a.source}</div>
-            <div class="editoria-pill">${a.editoria}</div>
-          </div>
-          <div style="font-size:0.84rem;color:#888"></div>
-        </div>`;
-      grid.appendChild(card);
-      total++;
-    }catch(e){}
+  if(displayedCount === 0) main.innerHTML = '';
+  let grid = main.querySelector('.cards-grid');
+  if(!grid){
+    grid = document.createElement('div'); grid.className = 'cards-grid';
+    main.appendChild(grid);
+  }
+  const slice = items.slice(displayedCount, displayedCount + PAGE_SIZE);
+  slice.forEach(a => {
+    const card = document.createElement('article');
+    card.className = 'card';
+    // horário removido intencionalmente do card principal conforme solicitado
+    card.innerHTML = `
+      <h3><a href="${a.link}" target="_blank" rel="noopener noreferrer">${a.title}</a></h3>
+      <p>${a.desc || ''}</p>
+      <div class="meta-row">
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="source-pill">${a.source}</div>
+          <div class="editoria-pill">${a.editoria}</div>
+        </div>
+      </div>`;
+    grid.appendChild(card);
   });
-  main.appendChild(grid);
-  document.getElementById('contador-hoje').textContent = `🔢 Notícias carregadas hoje: ${total}`;
+  displayedCount += slice.length;
+  document.getElementById('contador-hoje').textContent = `🔢 Notícias exibidas: ${displayedCount} / ${items.length}`;
+  renderLoadMoreIfNeeded(items.length);
+}
+function renderLoadMoreIfNeeded(total){
+  const existing = document.querySelector('.load-more-wrap');
+  if(existing) existing.remove();
+  if(displayedCount >= total) return;
+  const main = document.getElementById('noticias');
+  const wrap = document.createElement('div');
+  wrap.className = 'load-more-wrap';
+  const btn = document.createElement('button');
+  btn.className = 'btn-load-more';
+  btn.textContent = 'Carregar mais';
+  btn.onclick = () => {
+    const currentList = getCurrentFilteredList();
+    renderCardsPaged(currentList);
+  };
+  wrap.appendChild(btn);
+  main.appendChild(wrap);
 }
 
-/* Atualiza sidebar "Mais publicadas (últimas 5h)" */
-function atualizarMaisPublicadasFrom(list){
+/* ---------------- SIDEBAR: mais publicadas (últimas 5h) ----------------
+   Now accepts an optional limit parameter: if the active editoria is not 'Todas',
+   we show top 5 most published for that editoria; for 'Todas' we show up to 12.
+*/
+function updateSidebarFrom(list, limit = null){
   const container = document.getElementById('mais-publicadas');
   container.innerHTML = '';
   if(!list || list.length === 0){
     container.innerHTML = `<div style="color:var(--muted)">Sem dados recentes.</div>`;
     return;
   }
-  const agora = new Date();
-  const cincoHoras = new Date(agora.getTime() - 5*60*60*1000);
+  const now = new Date();
+  const fiveHoursAgo = new Date(now.getTime() - 5*60*60*1000);
   const map = {};
-  list.forEach(a=>{
-    try{
-      const pub = new Date(a.pubDate || 0);
-      if(isNaN(pub) || pub < cincoHoras) return;
-      const key = a.title.toLowerCase().replace(/[^\w\s]/g,'').substring(0,180);
-      if(!map[key]) map[key] = {count:0, item:a, latest:pub};
-      map[key].count++;
-      if(pub > map[key].latest) map[key].latest = pub;
-    }catch(e){}
+  list.forEach(a => {
+    if(!a.pubDate) return;
+    const pub = new Date(a.pubDate);
+    if(isNaN(pub) || pub < fiveHoursAgo) return;
+    // if editoria is filtered elsewhere, list already contains only that editoria
+    const key = a.title.toLowerCase().replace(/[^\w\s]/g,'').slice(0,180);
+    if(!map[key]) map[key] = { count:0, item: a, latest: pub };
+    map[key].count++;
+    if(pub > map[key].latest) map[key].latest = pub;
   });
-  const arr = Object.values(map).sort((x,y)=> y.count - x.count || y.latest - x.latest).slice(0,12);
+  const defaultLimit = (editoriaAtiva && editoriaAtiva !== 'Todas') ? 5 : 12;
+  const useLimit = Number.isInteger(limit) ? limit : defaultLimit;
+  const arr = Object.values(map).sort((x,y) => y.count - x.count || y.latest - x.latest).slice(0,useLimit);
   if(arr.length === 0){
     container.innerHTML = `<div style="color:var(--muted)">Sem publicações nas últimas 5 horas.</div>`;
     return;
   }
-  arr.forEach(entry=>{
+  arr.forEach(entry => {
     const a = entry.item;
     const div = document.createElement('div');
     div.className = 'item';
+    // keep timestamp in sidebar for recency context
     div.innerHTML = `<a href="${a.link}" target="_blank" rel="noopener noreferrer">${a.title}</a>
-      <div style="margin-top:6px;color:var(--muted);font-size:0.88rem">🗞 ${a.source} • ${formatarDataAMPM(a.pubDate)} ${entry.count>1?` • ×${entry.count}`:''}</div>`;
+      <div style="margin-top:6px;color:var(--muted);font-size:0.88rem">🗞 ${a.source} • ${formatDate(a.pubDate)} ${entry.count>1?` • ×${entry.count}`:''}</div>`;
     container.appendChild(div);
   });
 }
 
-/* Carrega todas as notícias (todos os feeds), filtra para HOJE, classifica cada item */
-async function carregarTodasHoje(){
-  if(isLoading) return;
-  setButtonsDisabled(true);
-  editoriaAtiva = 'Todas';
-  highlightActiveEditorias();
-  document.getElementById('noticias').innerHTML = `<div style="color:var(--muted);padding:12px;border-radius:8px">Carregando todas notícias de hoje...</div>`;
-  let todos = [];
-  const promises = feeds.map(f => fetchRss(f.url).then(items => {
-    if(items && items.length) todos = todos.concat(items);
-  }));
-  await Promise.all(promises);
-  // map para estrutura amigável e filtrar hoje
-  const mapped = todos.map(item => {
-    const title = item.querySelector('title')?.textContent || '(sem título)';
-    const link = item.querySelector('link')?.textContent || (item.querySelector('guid')?.textContent || '#');
-    const desc = item.querySelector('description')?.textContent || '';
-    const pubDate = item.querySelector('pubDate')?.textContent || '';
-    const source = (() => { try { return new URL(link).hostname.replace('www.',''); } catch(e){ return ''; } })();
-    return { item, title, link, desc, pubDate, source };
-  }).filter(a => isDateToday(a.pubDate));
-  // classificar cada item
-  const classified = mapped.map(a => {
-    const editoria = classifyArticle(a.title, a.desc);
-    return { ...a, editoria };
-  });
-  // ordenar por data desc
-  classified.sort((a,b)=> new Date(b.pubDate || 0) - new Date(a.pubDate || 0));
-  noticiasAtuais = classified;
-  renderCards(noticiasAtuais);
-  atualizarMaisPublicadasFrom(noticiasAtuais);
-  setButtonsDisabled(false);
+/* ---------------- FILTRAGEM E PAGINAÇÃO ---------------- */
+function getCurrentFilteredList(){
+  if(editoriaAtiva === 'Todas') return noticiasAtuais;
+  return noticiasAtuais.filter(a => a.editoria === editoriaAtiva);
+}
+function resetPaginationAndRender(){
+  displayedCount = 0;
+  const list = getCurrentFilteredList();
+  const main = document.getElementById('noticias');
+  main.innerHTML = '';
+  renderCardsPaged(list);
+  // sidebar should adapt to current editoria: pass the filtered list
+  updateSidebarFrom(list);
 }
 
-/* Filtrar por editoria (usa classificação já feita) */
+/* ---------------- MAIN LOADER ---------------- */
+async function carregarTodasHoje(){
+  if(isLoading) return;
+  setLoading(true);
+  editoriaAtiva = 'Todas';
+  highlightActiveEditorias();
+  document.getElementById('noticias').innerHTML = `<div style="color:var(--muted);padding:12px;border-radius:8px">Carregando notícias (coletando feeds) — isso pode levar alguns segundos...</div>`;
+  try{
+    const all = await fetchAllFeedsBatched(feeds);
+    const today = all.filter(a => isToday(a.pubDate));
+    const classified = today.map(a => ({
+      title: a.title,
+      link: a.link,
+      desc: a.desc,
+      pubDate: a.pubDate,
+      source: a.source || '',
+      editoria: classifyArticle(a.title, a.desc)
+    }));
+    classified.sort((x,y)=> new Date(y.pubDate||0) - new Date(x.pubDate||0));
+    noticiasAtuais = classified;
+    displayedCount = 0;
+    resetPaginationAndRender();
+  }catch(e){
+    console.error('Erro ao carregar todas as notícias', e);
+    document.getElementById('noticias').innerHTML = `<div style="color:var(--muted);padding:12px;border-radius:8px">Erro ao carregar notícias. Tente novamente.</div>`;
+  } finally {
+    setLoading(false);
+  }
+}
+
+/* ---------------- FILTRO POR EDITORIA (menu) ---------------- */
 function filterByEditoria(name){
   if(isLoading) return;
   editoriaAtiva = name;
   highlightActiveEditorias();
-  if(name === 'Todas'){
-    renderCards(noticiasAtuais);
-    atualizarMaisPublicadasFrom(noticiasAtuais);
-    return;
-  }
-  const filtered = noticiasAtuais.filter(a => a.editoria === name);
-  renderCards(filtered);
-  atualizarMaisPublicadasFrom(filtered);
+  displayedCount = 0;
+  // render grid and update sidebar using only articles for this editoria
+  resetPaginationAndRender();
 }
 
-/* Marca botão ativo visualmente */
-function highlightActiveEditorias(){
-  const buttons = document.querySelectorAll('.editoria-btn');
-  buttons.forEach(b => {
-    if(b.textContent === editoriaAtiva) b.classList.add('active');
-    else b.classList.remove('active');
-  });
-}
-
-/* Buscar por palavra (usa Google News search), filtrar para hoje, classificar */
+/* ---------------- BUSCA ---------------- */
 async function buscarPorPalavra(){
   const termo = document.getElementById('termoBusca').value.trim();
-  if(!termo){
+  if(!termo) {
     return carregarTodasHoje();
   }
   if(isLoading) return;
-  setButtonsDisabled(true);
+  setLoading(true);
   document.getElementById('noticias').innerHTML = `<div style="color:var(--muted);padding:12px;border-radius:8px">Buscando "${termo}" em notícias de hoje...</div>`;
-  const rssBusca = `https://news.google.com/rss/search?q=${encodeURIComponent(termo)}&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
-  const items = await fetchRss(rssBusca);
-  const mapped = items.map(item => {
-    const title = item.querySelector('title')?.textContent || '(sem título)';
-    const link = item.querySelector('link')?.textContent || '#';
-    const desc = item.querySelector('description')?.textContent || '';
-    const pubDate = item.querySelector('pubDate')?.textContent || '';
-    const source = (() => { try { return new URL(link).hostname.replace('www.',''); } catch(e){ return ''; } })();
-    return { item, title, link, desc, pubDate, source };
-  }).filter(a => isDateToday(a.pubDate));
-  const classified = mapped.map(a => ({ ...a, editoria: classifyArticle(a.title, a.desc) }));
-  classified.sort((a,b)=> new Date(b.pubDate || 0) - new Date(a.pubDate || 0));
-  noticiasAtuais = classified;
-  editoriaAtiva = 'Todas';
-  highlightActiveEditorias();
-  renderCards(noticiasAtuais);
-  atualizarMaisPublicadasFrom(noticiasAtuais);
-  setButtonsDisabled(false);
+  try{
+    const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(termo)}&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
+    const raw = await fetchRssRaw(rssUrl);
+    const items = raw ? parseItemsFromXmlString(raw) : [];
+    const mapped = items.map(it => {
+      const title = it.querySelector('title')?.textContent || '(sem título)';
+      const link = it.querySelector('link')?.textContent || '#';
+      const desc = it.querySelector('description')?.textContent || '';
+      const pubDate = it.querySelector('pubDate')?.textContent || '';
+      const source = (()=>{ try { return new URL(link).hostname.replace('www.',''); } catch(e){ return ''; } })();
+      return { title: title.trim(), link, desc: desc.trim(), pubDate, source };
+    }).filter(a => isToday(a.pubDate));
+    const classified = mapped.map(a => ({ ...a, editoria: classifyArticle(a.title, a.desc) }));
+    classified.sort((a,b)=> new Date(b.pubDate||0) - new Date(a.pubDate||0));
+    noticiasAtuais = classified;
+    editoriaAtiva = 'Todas';
+    displayedCount = 0;
+    resetPaginationAndRender();
+  }catch(e){
+    console.error('Erro ao buscar', e);
+    document.getElementById('noticias').innerHTML = `<div style="color:var(--muted);padding:12px;border-radius:8px">Erro na busca. Tente novamente.</div>`;
+  } finally {
+    setLoading(false);
+  }
 }
 
-/* Auto refresh (15min) e manual */
-let refreshInterval = 15 * 60;
-let refreshCountdown = refreshInterval;
+/* ---------------- LOADING STATE ---------------- */
+function setLoading(flag){
+  isLoading = flag;
+  const allButtons = document.querySelectorAll('.editoria-btn, .btn, .btn-load-more');
+  allButtons.forEach(b => b.disabled = flag);
+}
+
+/* ---------------- AUTO REFRESH ---------------- */
+let refreshIntervalSec = 15 * 60;
+let refreshCountdown = refreshIntervalSec;
 let refreshTimerId = null;
-function atualizarTimerRefresh(){
+function atualizarTimer(){
   const el = document.getElementById('refresh-timer');
   if(!el) return;
-  const m = Math.floor(refreshCountdown/60).toString().padStart(2,'0');
-  const s = (refreshCountdown%60).toString().padStart(2,'0');
+  const m = String(Math.floor(refreshCountdown/60)).padStart(2,'0');
+  const s = String(refreshCountdown%60).padStart(2,'0');
   el.textContent = `⏳ Atualização automática em ${m}:${s}`;
 }
 function iniciarAutoRefresh(){
   if(refreshTimerId) clearInterval(refreshTimerId);
-  refreshCountdown = refreshInterval;
-  atualizarTimerRefresh();
+  refreshCountdown = refreshIntervalSec;
+  atualizarTimer();
   refreshTimerId = setInterval(()=>{
     refreshCountdown--;
     if(refreshCountdown <= 0){
-      refreshCountdown = refreshInterval;
+      refreshCountdown = refreshIntervalSec;
       carregarTodasHoje();
     }
-    atualizarTimerRefresh();
+    atualizarTimer();
   }, 1000);
 }
 function refreshNoticias(){
   carregarTodasHoje();
-  refreshCountdown = refreshInterval;
-  atualizarTimerRefresh();
+  refreshCountdown = refreshIntervalSec;
+  atualizarTimer();
 }
 
-/* Inicialização */
+/* ---------------- INICIALIZAÇÃO ---------------- */
 function init(){
   renderEditoriasMenu();
   carregarTodasHoje();
   iniciarAutoRefresh();
+  document.getElementById('termoBusca').addEventListener('keydown', e => {
+    if(e.key === 'Enter') buscarPorPalavra();
+  });
+  window.addEventListener('scroll', () => {
+    const more = document.querySelector('.btn-load-more');
+    if(!more) return;
+    const rect = more.getBoundingClientRect();
+    if(rect.top < window.innerHeight + 100) {
+      if(!isLoading) more.click();
+    }
+  }, { passive: true });
 }
+
 init();
 
 </script>
