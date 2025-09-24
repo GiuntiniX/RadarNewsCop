@@ -128,6 +128,9 @@
     .meta-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
     .source-pill{background:rgba(0,0,0,0.03);padding:6px 8px;border-radius:999px;font-size:0.85rem;color:#444}
     .editoria-pill{background:var(--editoria-color);color:#041114;padding:6px 8px;border-radius:8px;font-weight:700;font-size:0.82rem}
+    .subtags{display:inline-flex;gap:6px;align-items:center;margin-left:8px;flex-wrap:wrap}
+    .subtag{background:rgba(0,0,0,0.05);color:var(--card-text);padding:4px 8px;border-radius:999px;font-size:0.75rem;font-weight:600;border:1px solid rgba(0,0,0,0.04)}
+    .subtag.small{font-size:0.7rem;padding:3px 6px}
 
     /* Load more */
     .load-more-wrap{ display:flex; justify-content:center; margin:18px 0 }
@@ -189,12 +192,11 @@
   </div>
 
 <script>
-/* Changes made:
- - Added per-editoria color mapping.
- - Menu buttons are painted using the editoria color.
- - Each card receives a --editoria-color CSS variable; card border, title link and any links in description use that color.
- - Sidebar items also receive the --editoria-color and their links use the same color.
- - Text color on pills/buttons is chosen for contrast.
+/* Esta versão:
+ - Integra sub-tópicos para cada editoria (o mapeamento solicitado pelo usuário).
+ - Expande o classificador para detectar e atribuir subtags (subtopics) a cada artigo.
+ - Exibe as subtags no card (pequenas "pills") próximas à editoria.
+ - Mantém cores por editoria e demais melhorias já aplicadas.
 */
 
 /* ---------------- CONFIGURAÇÕES ---------------- */
@@ -237,9 +239,7 @@ const EDITORIAS = [
   'Arte','Moda','Culinária','Turismo','Religião','Carreira','Opinião','Esportes'
 ];
 
-/* ---------------- EDITORIA COLORS (hex) ----------------
-   Colors chosen for distinctiveness; you can tweak them.
-*/
+/* ---------------- EDITORIA COLORS (hex) ---------------- */
 const EDITORIA_COLORS = {
   'Todas': '#00aced',
   'Geral': '#6c757d',
@@ -265,7 +265,66 @@ const EDITORIA_COLORS = {
   'Esportes': '#388e3c'
 };
 
+/* ---------------- SUB-TÓPICOS (subtopics) por editoria ----------------
+   Aqui mapeei os sub-tópicos que você listou. Cada entrada tem termos que o detector
+   usará para sinalizar subtags nos artigos.
+*/
+const SUBTOPICS = {
+  'Tecnologia': [
+    'inteligência artificial','ia','artificial intelligence','reviews','reviews de produtos',
+    'celular','smartphone','notebook','computador','computadores','games','consoles','aplicativo','app',
+    'redes sociais','cibersegurança','hardware','inovação','inovações','tendências','ciência','espaço',
+    'veículos','carro autônomo','autônomo','startup','negócios tech','5g','6g','tutorial','dicas','memes','virais','streaming','programação','desenvolvimento'
+  ],
+  'Brasil': [
+    'política nacional','estadual','governo estadual','prefeitura','cidade','segurança pública','serviços','infraestrutura','direitos humanos'
+  ],
+  'Mundo': [
+    'notícias internacionais','conflito','guerra','diplomacia','política global','américa latina','europe','asia','asia pacifico'
+  ],
+  'Política': [
+    'executivo','congresso','legislativo','judiciário','eleições','partido','política pública','corrupção'
+  ],
+  'Economia': [
+    'inflação','juros','câmbio','dólar','bolsa','investimento','agronegócio','indústria','comércio','finanças pessoais'
+  ],
+  'Ciência': [
+    'espaço','astronomia','descoberta','pesquisa','meio ambiente','paleontologia','biologia'
+  ],
+  'Saúde': [
+    'bem-estar','doença','tratamento','nutrição','saúde mental','vacina','sus','fitness'
+  ],
+  'Educação': [
+    'ensino básico','ensino superior','vestibular','enem','tecnologia na educação','curso','intercâmbio'
+  ],
+  'Meio Ambiente': [
+    'mudança climática','desmatamento','sustentabilidade','biodiversidade','reciclagem','energias renováveis','desastre ambiental'
+  ],
+  'Negócios': [
+    'empresa','empreendedorismo','gestão','marketing','finanças corporativas','fusão','aquisicao','varejo'
+  ],
+  'Cultura': [
+    'música','cinema','séries','streaming','livros','teatro','exposição','famosos'
+  ],
+  'Entretenimento': [
+    'celebridade','famoso','subcelebridade','bbb','big brother','a fazenda','reality','fofoca','memes','virais','musica pop'
+  ],
+  'Arte': ['artes plásticas','exposição','museu','fotografia','design'],
+  'Moda': ['tendência','desfile','beleza','designer','sustentabilidade moda'],
+  'Culinária': ['receita','restaurante','chef','gastronomia','vinho'],
+  'Turismo': ['destino','hotel','passagem','ecoturismo'],
+  'Religião': ['evento religioso','vaticano','debate fé'],
+  'Carreira': ['emprego','entrevista','concurso','desenvolvimento profissional'],
+  'Opinião': ['coluna','editorial','análise'],
+  'Esportes': [
+    'futebol masculino','futebol feminino','futebol','volei','vôlei','volei de praia','vôlei de praia','basquete','futsal',
+    'handebol','formula 1','fórmula 1','stock car','motogp','mma','boxe','judô','judo','surfe','skate','tênis','tenis',
+    'natação','natacao','atletismo','ginástica artística','futebol americano','e-sports','esports'
+  ]
+};
+
 /* ---------------- CLASSIFICADOR HEURÍSTICO ---------------- */
+/* Mantive a lista KEYWORDS usada para pontuar editorias (pode ser usada em conjunto com SUBTOPICS). */
 const KEYWORDS = {
   'Política': ['presidente','governo','ministro','parlamento','deputado','senador','congresso','eleicao','politica'],
   'Economia': ['economia','banco','juros','inflat','ibge','cambio','bolsa','mercado','investimento','pib'],
@@ -273,10 +332,10 @@ const KEYWORDS = {
   'Saúde': ['saude','hospital','vacina','epidemia','pandemia','sintoma','paciente','medico'],
   'Educação': ['escola','ensino','universidade','professor','aluno','vestibular'],
   'Meio Ambiente': ['clima','desmatamento','sustentabilidade','emissao','fauna','flora'],
-  'Tecnologia': ['tecnologia','aplicativo','app','inteligencia artificial','ia','startup','software','hardware','gadget','criptomoeda','blockchain'],
+  'Tecnologia': ['tecnologia','aplicativo','app','inteligencia artificial','ia','startup','software','hardware','gadget','criptomoeda','blockchain','celular','smartphone','notebook','computador','games','streaming','programação','desenvolvimento'],
   'Negócios': ['empresa','fusao','aquisicao','ceo','executivo','investidor','contrato','financas'],
   'Cultura': ['cultura','festival','museu','exposicao'],
-  'Entretenimento': ['filme','cinema','estreia','serie','turne','entrevista','show'],
+  'Entretenimento': ['filme','cinema','estreia','serie','turne','entrevista','show','famoso','celebridade','bbb','a fazenda','reality','fofoca'],
   'Arte': ['arte','obra','galeria','pintura','escultura'],
   'Moda': ['moda','desfile','estilista','colecao','tendencia'],
   'Culinária': ['culinaria','receita','chefe','restaurante','gastronomia'],
@@ -284,7 +343,7 @@ const KEYWORDS = {
   'Religião': ['igreja','religiao','culto','padre','pastor','fe'],
   'Carreira': ['carreira','emprego','vaga','salario','recrutamento'],
   'Opinião': ['opiniao','coluna','editorial'],
-  'Esportes': ['jogo','partida','time','campeonato','gol','futebol','basquete','volei','formula 1','f1','copa']
+  'Esportes': ['futebol','volei','vôlei','basquete','futsal','handebol','formula 1','stock car','motogp','mma','boxe','judô','surfe','skate','tênis','natação','atletismo','ginastica']
 };
 
 /* ---------------- ESTADO ---------------- */
@@ -413,10 +472,31 @@ async function fetchAllFeedsBatched(feedList){
   return results;
 }
 
+/* ---------------- DETECT SUBTOPICS ---------------- */
+function detectSubtopics(title, desc, editoria){
+  const text = (title + ' ' + (desc||'')).toLowerCase();
+  const subs = [];
+  const list = SUBTOPICS[editoria] || [];
+  for(const term of list){
+    const k = term.toLowerCase();
+    // word-boundary friendly check for multiword phrases
+    const regex = new RegExp('\\b' + k.replace(/\s+/g,'\\s+') + '\\b','i');
+    if(regex.test(text) && !subs.includes(term)) subs.push(term);
+  }
+  return subs;
+}
+
 /* ---------------- CLASSIFICADOR ---------------- */
 function classifyArticle(title, desc){
   const textTitle = normalize(title);
   const textDesc = normalize(desc);
+
+  // Quick entertainment override for strong terms
+  const entertainmentEarly = ['famoso','famosos','celebridade','celebridades','subcelebridade','bbb','big brother','a fazenda','reality','fofoca','memes','virais'];
+  for(const t of entertainmentEarly){
+    if(textTitle.includes(t) || textDesc.includes(t)) return 'Entretenimento';
+  }
+
   let best = 'Geral';
   let bestScore = 0;
   for(const [editoria, keywords] of Object.entries(KEYWORDS)){
@@ -447,11 +527,8 @@ function renderEditoriasMenu(){
     btn.className = 'editoria-btn';
     btn.textContent = name;
     btn.setAttribute('data-editoria', name);
-    // determine color
     const color = EDITORIA_COLORS[name] || getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#00aced';
-    // paint button using color; set a soft gradient
     btn.style.background = `linear-gradient(90deg, ${color}, ${shadeColor(color,12)})`;
-    // choose button text color for contrast
     btn.style.color = isColorLight(color) ? '#041114' : '#fff';
     btn.onclick = () => { filterByEditoria(name); };
     menu.appendChild(btn);
@@ -463,7 +540,6 @@ function highlightActiveEditorias(){
   btns.forEach(b => {
     const isActive = b.textContent === editoriaAtiva;
     b.classList.toggle('active', isActive);
-    // if active, add stronger box-shadow using its color
     const color = EDITORIA_COLORS[b.getAttribute('data-editoria')] || getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
     if(isActive){
       b.style.boxShadow = `0 10px 30px ${hexToRgba(color, 0.18)}`;
@@ -506,22 +582,28 @@ function renderCardsPaged(items){
   slice.forEach(a => {
     const card = document.createElement('article');
     card.className = 'card';
-    // determine editoria color
     const color = EDITORIA_COLORS[a.editoria] || EDITORIA_COLORS['Todas'] || getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
-    // set CSS var for this card (used by CSS for border, links, pill background)
     card.style.setProperty('--editoria-color', color);
-    // render content (horário removido intencionalmente do card principal conforme solicitado)
+
+    // compute subtags for display (if not already present)
+    if(!a.subtags) a.subtags = detectSubtopics(a.title, a.desc, a.editoria);
+
+    // render card with subtags (show up to 3)
+    const subtagsHtml = (a.subtags && a.subtags.length) ? `<div class="subtags">${a.subtags.slice(0,3).map(s => `<span class="subtag small">${escapeHtml(s)}</span>`).join('')}</div>` : '';
+
     card.innerHTML = `
       <h3><a href="${escapeHtmlAttr(a.link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(a.title)}</a></h3>
       <p>${a.desc || ''}</p>
       <div class="meta-row">
         <div style="display:flex;gap:8px;align-items:center">
           <div class="source-pill">${escapeHtml(a.source)}</div>
-          <div class="editoria-pill">${escapeHtml(a.editoria)}</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <div class="editoria-pill">${escapeHtml(a.editoria)}</div>
+            ${subtagsHtml}
+          </div>
         </div>
       </div>`;
     grid.appendChild(card);
-    // adjust pill text color for contrast
     const pill = card.querySelector('.editoria-pill');
     if(pill){
       pill.style.color = isColorLight(color) ? '#041114' : '#fff';
@@ -549,10 +631,7 @@ function renderLoadMoreIfNeeded(total){
   main.appendChild(wrap);
 }
 
-/* ---------------- SIDEBAR: mais publicadas (últimas 5h) ----------------
-   Now accepts an optional limit parameter: if the active editoria is not 'Todas',
-   we show top 5 most published for that editoria; for 'Todas' we show up to 12.
-*/
+/* ---------------- SIDEBAR: mais publicadas (últimas 5h) ---------------- */
 function updateSidebarFrom(list, limit = null){
   const container = document.getElementById('mais-publicadas');
   container.innerHTML = '';
@@ -567,7 +646,6 @@ function updateSidebarFrom(list, limit = null){
     if(!a.pubDate) return;
     const pub = new Date(a.pubDate);
     if(isNaN(pub) || pub < fiveHoursAgo) return;
-    // if editoria is filtered elsewhere, list already contains only that editoria
     const key = a.title.toLowerCase().replace(/[^\w\s]/g,'').slice(0,180);
     if(!map[key]) map[key] = { count:0, item: a, latest: pub };
     map[key].count++;
@@ -584,10 +662,8 @@ function updateSidebarFrom(list, limit = null){
     const a = entry.item;
     const div = document.createElement('div');
     div.className = 'item';
-    // set editoria color on the container so .item a uses it (CSS reads --editoria-color)
     const color = EDITORIA_COLORS[a.editoria] || EDITORIA_COLORS['Todas'] || getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
     div.style.setProperty('--editoria-color', color);
-    // keep timestamp in sidebar for recency context
     div.innerHTML = `<a href="${escapeHtmlAttr(a.link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(a.title)}</a>
       <div style="margin-top:6px;color:var(--muted);font-size:0.88rem">🗞 ${escapeHtml(a.source)} • ${formatDate(a.pubDate)} ${entry.count>1?` • ×${entry.count}`:''}</div>`;
     container.appendChild(div);
@@ -597,6 +673,23 @@ function updateSidebarFrom(list, limit = null){
 /* ---------------- FILTRAGEM E PAGINAÇÃO ---------------- */
 function getCurrentFilteredList(){
   if(editoriaAtiva === 'Todas') return noticiasAtuais;
+  // special handling for Esportes: include football-associated cross-articles already covered by SUBTOPICS detection
+  if(editoriaAtiva === 'Esportes'){
+    return noticiasAtuais.filter(a => {
+      try{
+        if(a.editoria === 'Esportes') return true;
+        // include if any sports subtopic detected and contains 'futebol' or related
+        const subs = detectSubtopics(a.title, a.desc, a.editoria || 'Geral');
+        // if article mentions 'futebol' together with other sports terms we include it
+        const txt = (a.title + ' ' + (a.desc||'')).toLowerCase();
+        if(txt.includes('futebol') || txt.includes('futebol masculino') || txt.includes('futebol feminino')) return true;
+        // or if it has any subtopic from Esportes list
+        return subs.some(s => SUBTOPICS['Esportes'].some(es => s.toLowerCase().includes(es)));
+      }catch(e){
+        return false;
+      }
+    });
+  }
   return noticiasAtuais.filter(a => a.editoria === editoriaAtiva);
 }
 function resetPaginationAndRender(){
@@ -605,7 +698,6 @@ function resetPaginationAndRender(){
   const main = document.getElementById('noticias');
   main.innerHTML = '';
   renderCardsPaged(list);
-  // sidebar should adapt to current editoria: pass the filtered list
   updateSidebarFrom(list);
 }
 
@@ -619,14 +711,19 @@ async function carregarTodasHoje(){
   try{
     const all = await fetchAllFeedsBatched(feeds);
     const today = all.filter(a => isToday(a.pubDate));
-    const classified = today.map(a => ({
-      title: a.title,
-      link: a.link,
-      desc: a.desc,
-      pubDate: a.pubDate,
-      source: a.source || '',
-      editoria: classifyArticle(a.title, a.desc)
-    }));
+    const classified = today.map(a => {
+      const editoria = classifyArticle(a.title, a.desc);
+      const subtags = detectSubtopics(a.title, a.desc, editoria);
+      return {
+        title: a.title,
+        link: a.link,
+        desc: a.desc,
+        pubDate: a.pubDate,
+        source: a.source || '',
+        editoria,
+        subtags
+      };
+    });
     classified.sort((x,y)=> new Date(y.pubDate||0) - new Date(x.pubDate||0));
     noticiasAtuais = classified;
     displayedCount = 0;
@@ -645,7 +742,6 @@ function filterByEditoria(name){
   editoriaAtiva = name;
   highlightActiveEditorias();
   displayedCount = 0;
-  // render grid and update sidebar using only articles for this editoria
   resetPaginationAndRender();
 }
 
@@ -670,7 +766,11 @@ async function buscarPorPalavra(){
       const source = (()=>{ try { return new URL(link).hostname.replace('www.',''); } catch(e){ return ''; } })();
       return { title: title.trim(), link, desc: desc.trim(), pubDate, source };
     }).filter(a => isToday(a.pubDate));
-    const classified = mapped.map(a => ({ ...a, editoria: classifyArticle(a.title, a.desc) }));
+    const classified = mapped.map(a => {
+      const editoria = classifyArticle(a.title, a.desc);
+      const subtags = detectSubtopics(a.title, a.desc, editoria);
+      return { ...a, editoria, subtags };
+    });
     classified.sort((a,b)=> new Date(b.pubDate||0) - new Date(a.pubDate||0));
     noticiasAtuais = classified;
     editoriaAtiva = 'Todas';
