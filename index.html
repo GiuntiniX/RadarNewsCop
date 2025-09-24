@@ -112,18 +112,22 @@
       padding:12px 14px;
       border-radius:10px;
       box-shadow:0 6px 18px rgba(0,0,0,0.45);
-      border-left:6px solid var(--accent);
+      border-left:6px solid var(--editoria-color, var(--accent));
       display:flex;
       flex-direction:column;
       min-height:130px;
+      /* per-card editoria color var (set inline by JS) */
+      --editoria-color: var(--accent);
     }
     .card h3{margin:0 0 6px;font-size:1rem}
-    .card h3 a{ color: inherit; text-decoration:none }
+    .card h3 a{ color: var(--editoria-color); text-decoration:none }
     .card p{margin:0 0 8px;color:#333;flex:1;font-size:0.95rem; overflow:hidden; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical}
+    /* links dentro da descrição também herdam a cor da editoria */
+    .card p a { color: var(--editoria-color); text-decoration:underline }
     .card small{color:#666;display:block;margin-bottom:6px}
     .meta-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
     .source-pill{background:rgba(0,0,0,0.03);padding:6px 8px;border-radius:999px;font-size:0.85rem;color:#444}
-    .editoria-pill{background:#00aced;color:#041114;padding:6px 8px;border-radius:8px;font-weight:700;font-size:0.82rem}
+    .editoria-pill{background:var(--editoria-color);color:#041114;padding:6px 8px;border-radius:8px;font-weight:700;font-size:0.82rem}
 
     /* Load more */
     .load-more-wrap{ display:flex; justify-content:center; margin:18px 0 }
@@ -133,7 +137,8 @@
     .sidebar{ position:relative }
     .sidebar h4{color:var(--accent); text-align:center; margin:0 0 8px}
     .sidebar .item{ background:var(--panel); border-radius:8px; padding:10px; margin-bottom:10px; color:var(--muted); border-left:4px solid rgba(255,255,255,0.03) }
-    .sidebar .item a{ color:#9be9ff; text-decoration:underline; font-weight:600 }
+    /* allow each .item to expose --editoria-color inline and have its link colored accordingly */
+    .sidebar .item a{ color:var(--editoria-color, var(--accent)); text-decoration:underline; font-weight:600 }
 
     #contador-hoje{ color:var(--muted); text-align:center; margin-top:6px }
 
@@ -184,9 +189,12 @@
   </div>
 
 <script>
-/* Changes made: updated sidebar behavior so clicking an editoria filters "Mais publicadas"
-   to show the top 5 most published items for that editoria (within the last 5 hours).
-   For the global "Todas" view the sidebar keeps showing up to 12 items.
+/* Changes made:
+ - Added per-editoria color mapping.
+ - Menu buttons are painted using the editoria color.
+ - Each card receives a --editoria-color CSS variable; card border, title link and any links in description use that color.
+ - Sidebar items also receive the --editoria-color and their links use the same color.
+ - Text color on pills/buttons is chosen for contrast.
 */
 
 /* ---------------- CONFIGURAÇÕES ---------------- */
@@ -228,6 +236,34 @@ const EDITORIAS = [
   'Educação','Meio Ambiente','Tecnologia','Negócios','Cultura','Entretenimento',
   'Arte','Moda','Culinária','Turismo','Religião','Carreira','Opinião','Esportes'
 ];
+
+/* ---------------- EDITORIA COLORS (hex) ----------------
+   Colors chosen for distinctiveness; you can tweak them.
+*/
+const EDITORIA_COLORS = {
+  'Todas': '#00aced',
+  'Geral': '#6c757d',
+  'Brasil': '#2e7d32',
+  'Mundo': '#6a1b9a',
+  'Política': '#d32f2f',
+  'Economia': '#ff9800',
+  'Ciência': '#00897b',
+  'Saúde': '#43a047',
+  'Educação': '#3949ab',
+  'Meio Ambiente': '#2e7d32',
+  'Tecnologia': '#00bcd4',
+  'Negócios': '#ffb300',
+  'Cultura': '#8e24aa',
+  'Entretenimento': '#e91e63',
+  'Arte': '#7b1fa2',
+  'Moda': '#ff4081',
+  'Culinária': '#6d4c41',
+  'Turismo': '#00796b',
+  'Religião': '#5d4037',
+  'Carreira': '#1976d2',
+  'Opinião': '#fb8c00',
+  'Esportes': '#388e3c'
+};
 
 /* ---------------- CLASSIFICADOR HEURÍSTICO ---------------- */
 const KEYWORDS = {
@@ -273,6 +309,26 @@ function isToday(pub){
   if(isNaN(d)) return false;
   const n = new Date();
   return d.getFullYear()===n.getFullYear() && d.getMonth()===n.getMonth() && d.getDate()===n.getDate();
+}
+function hexToRgb(hex){
+  if(!hex) return null;
+  const h = hex.replace('#','');
+  if(h.length === 3) {
+    return { r: parseInt(h[0]+h[0],16), g: parseInt(h[1]+h[1],16), b: parseInt(h[2]+h[2],16) };
+  }
+  return { r: parseInt(h.substring(0,2),16), g: parseInt(h.substring(2,4),16), b: parseInt(h.substring(4,6),16) };
+}
+function isColorLight(hex){
+  try{
+    const rgb = hexToRgb(hex);
+    if(!rgb) return false;
+    // relative luminance formula
+    const r = rgb.r/255, g = rgb.g/255, b = rgb.b/255;
+    const lum = 0.2126*r + 0.7152*g + 0.0722*b;
+    return lum > 0.6;
+  }catch(e){
+    return false;
+  }
 }
 
 /* ---------------- CACHE (localStorage) ---------------- */
@@ -390,6 +446,13 @@ function renderEditoriasMenu(){
     const btn = document.createElement('button');
     btn.className = 'editoria-btn';
     btn.textContent = name;
+    btn.setAttribute('data-editoria', name);
+    // determine color
+    const color = EDITORIA_COLORS[name] || getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#00aced';
+    // paint button using color; set a soft gradient
+    btn.style.background = `linear-gradient(90deg, ${color}, ${shadeColor(color,12)})`;
+    // choose button text color for contrast
+    btn.style.color = isColorLight(color) ? '#041114' : '#fff';
     btn.onclick = () => { filterByEditoria(name); };
     menu.appendChild(btn);
   });
@@ -397,7 +460,38 @@ function renderEditoriasMenu(){
 }
 function highlightActiveEditorias(){
   const btns = document.querySelectorAll('.editoria-btn');
-  btns.forEach(b => b.classList.toggle('active', b.textContent === editoriaAtiva));
+  btns.forEach(b => {
+    const isActive = b.textContent === editoriaAtiva;
+    b.classList.toggle('active', isActive);
+    // if active, add stronger box-shadow using its color
+    const color = EDITORIA_COLORS[b.getAttribute('data-editoria')] || getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    if(isActive){
+      b.style.boxShadow = `0 10px 30px ${hexToRgba(color, 0.18)}`;
+    } else {
+      b.style.boxShadow = `0 6px 16px ${hexToRgba(color, 0.08)}`;
+    }
+  });
+}
+
+/* small helpers to shade and rgba from hex */
+function shadeColor(hex, percent) {
+  try{
+    let {r,g,b} = hexToRgb(hex);
+    r = Math.min(255, Math.round(r + (percent/100)*255));
+    g = Math.min(255, Math.round(g + (percent/100)*255));
+    b = Math.min(255, Math.round(b + (percent/100)*255));
+    return `rgb(${r},${g},${b})`;
+  }catch(e){
+    return hex;
+  }
+}
+function hexToRgba(hex, alpha){
+  try{
+    const c = hexToRgb(hex);
+    return `rgba(${c.r},${c.g},${c.b},${alpha})`;
+  }catch(e){
+    return `rgba(0,172,237,${alpha})`;
+  }
 }
 
 function renderCardsPaged(items){
@@ -412,17 +506,26 @@ function renderCardsPaged(items){
   slice.forEach(a => {
     const card = document.createElement('article');
     card.className = 'card';
-    // horário removido intencionalmente do card principal conforme solicitado
+    // determine editoria color
+    const color = EDITORIA_COLORS[a.editoria] || EDITORIA_COLORS['Todas'] || getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    // set CSS var for this card (used by CSS for border, links, pill background)
+    card.style.setProperty('--editoria-color', color);
+    // render content (horário removido intencionalmente do card principal conforme solicitado)
     card.innerHTML = `
-      <h3><a href="${a.link}" target="_blank" rel="noopener noreferrer">${a.title}</a></h3>
+      <h3><a href="${escapeHtmlAttr(a.link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(a.title)}</a></h3>
       <p>${a.desc || ''}</p>
       <div class="meta-row">
         <div style="display:flex;gap:8px;align-items:center">
-          <div class="source-pill">${a.source}</div>
-          <div class="editoria-pill">${a.editoria}</div>
+          <div class="source-pill">${escapeHtml(a.source)}</div>
+          <div class="editoria-pill">${escapeHtml(a.editoria)}</div>
         </div>
       </div>`;
     grid.appendChild(card);
+    // adjust pill text color for contrast
+    const pill = card.querySelector('.editoria-pill');
+    if(pill){
+      pill.style.color = isColorLight(color) ? '#041114' : '#fff';
+    }
   });
   displayedCount += slice.length;
   document.getElementById('contador-hoje').textContent = `🔢 Notícias exibidas: ${displayedCount} / ${items.length}`;
@@ -481,9 +584,12 @@ function updateSidebarFrom(list, limit = null){
     const a = entry.item;
     const div = document.createElement('div');
     div.className = 'item';
+    // set editoria color on the container so .item a uses it (CSS reads --editoria-color)
+    const color = EDITORIA_COLORS[a.editoria] || EDITORIA_COLORS['Todas'] || getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    div.style.setProperty('--editoria-color', color);
     // keep timestamp in sidebar for recency context
-    div.innerHTML = `<a href="${a.link}" target="_blank" rel="noopener noreferrer">${a.title}</a>
-      <div style="margin-top:6px;color:var(--muted);font-size:0.88rem">🗞 ${a.source} • ${formatDate(a.pubDate)} ${entry.count>1?` • ×${entry.count}`:''}</div>`;
+    div.innerHTML = `<a href="${escapeHtmlAttr(a.link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(a.title)}</a>
+      <div style="margin-top:6px;color:var(--muted);font-size:0.88rem">🗞 ${escapeHtml(a.source)} • ${formatDate(a.pubDate)} ${entry.count>1?` • ×${entry.count}`:''}</div>`;
     container.appendChild(div);
   });
 }
@@ -551,7 +657,7 @@ async function buscarPorPalavra(){
   }
   if(isLoading) return;
   setLoading(true);
-  document.getElementById('noticias').innerHTML = `<div style="color:var(--muted);padding:12px;border-radius:8px">Buscando "${termo}" em notícias de hoje...</div>`;
+  document.getElementById('noticias').innerHTML = `<div style="color:var(--muted);padding:12px;border-radius:8px">Buscando "${escapeHtml(termo)}" em notícias de hoje...</div>`;
   try{
     const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(termo)}&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
     const raw = await fetchRssRaw(rssUrl);
@@ -631,6 +737,19 @@ function init(){
       if(!isLoading) more.click();
     }
   }, { passive: true });
+}
+
+/* ---------------- small safe helpers ---------------- */
+function escapeHtml(s){
+  if(!s) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+function escapeHtmlAttr(s){
+  if(!s) return '';
+  return String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 init();
