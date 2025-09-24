@@ -83,6 +83,9 @@
     /* Grupo 6 */
     .cor-grupo6 { background: #607d8b; }
     .cor-grupo6.selected, .cor-grupo6:hover { background: #b0bec5; color: #1e1e1e;}
+    /* Grupo 7 */
+    .cor-grupo7 { background: #03A9F4; }
+    .cor-grupo7.selected, .cor-grupo7:hover { background: #81d4fa; color: #1e1e1e;}
 
     .busca {
       text-align: center;
@@ -170,7 +173,6 @@
       color: #666;
       font-size: 0.93em;
     }
-    /* Layout principal com coluna lateral */
     .main-layout {
       display: flex;
       flex-direction: row;
@@ -299,23 +301,30 @@
   </div>
 </div>
 <script>
+// FEEDS PARA MÁXIMA COBERTURA: Google News com asterisco, editorias, sites grandes e regionais.
 const feeds = [
-  // Grupo 1: Notícias Gerais
-  { nome: 'Geral', url: 'https://news.google.com/rss?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 1 },
+  // Feeds hiper-abundantes, máximo de fontes
+  { nome: 'Tudo do Google News', url: 'https://news.google.com/rss/search?q=*&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 7 }, // TUDO
+  { nome: 'Todas Notícias', url: 'https://news.google.com/rss?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 7 }, // Recomendado pelo Google News
+
+  // Editorias amplas, para garantir cobertura total
+  { nome: 'Geral', url: 'https://news.google.com/rss/headlines/section/topic/NATION.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 1 },
   { nome: 'Brasil', url: 'https://news.google.com/rss/headlines/section/geo/Brasil?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 1 },
   { nome: 'Mundo', url: 'https://news.google.com/rss/headlines/section/topic/WORLD.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 1 },
   { nome: 'Política', url: 'https://news.google.com/rss/headlines/section/topic/POLITICS.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 1 },
   { nome: 'Economia', url: 'https://news.google.com/rss/headlines/section/topic/BUSINESS.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 1 },
   { nome: 'Opinião', url: 'https://news.google.com/rss/search?q=opinião&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 1 },
 
-  // Grupo 2: Ciência, Saúde, Educação, Meio ambiente
+  // Editorias sociais e regionais
+  { nome: 'Cidades', url: 'https://news.google.com/rss/search?q=cidade&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 2 },
+  { nome: 'Polícia', url: 'https://news.google.com/rss/search?q=polícia&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 2 },
   { nome: 'Ciência', url: 'https://news.google.com/rss/headlines/section/topic/SCIENCE.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 2 },
   { nome: 'Saúde', url: 'https://news.google.com/rss/headlines/section/topic/HEALTH.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 2 },
   { nome: 'Educação', url: 'https://news.google.com/rss/search?q=educação&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 2 },
   { nome: 'Meio Ambiente', url: 'https://news.google.com/rss/search?q=meio+ambiente&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 2 },
   { nome: 'Carreira', url: 'https://news.google.com/rss/search?q=carreira&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 2 },
 
-  // Grupo 3: Entretenimento e Cultura
+  // Cultura, entretenimento e nichos
   { nome: 'Entretenimento', url: 'https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 3 },
   { nome: 'Celebridades', url: 'https://news.google.com/rss/search?q=celebridades&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 3 },
   { nome: 'A Fazenda', url: 'https://news.google.com/rss/search?q=a+fazenda&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 3 },
@@ -327,7 +336,7 @@ const feeds = [
   { nome: 'Turismo', url: 'https://news.google.com/rss/search?q=turismo&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 3 },
   { nome: 'Religião', url: 'https://news.google.com/rss/search?q=religião&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 3 },
 
-  // Grupo 4: Esportes
+  // Esportes e subeditorias
   { nome: 'Esportes', url: 'https://news.google.com/rss/headlines/section/topic/SPORTS.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 4 },
   { nome: 'Futebol', url: 'https://news.google.com/rss/search?q=futebol&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 4 },
   { nome: 'Futebol Feminino', url: 'https://news.google.com/rss/search?q=futebol+feminino&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 4 },
@@ -337,12 +346,12 @@ const feeds = [
   { nome: 'NBA', url: 'https://news.google.com/rss/search?q=NBA&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 4 },
   { nome: 'Vôlei', url: 'https://news.google.com/rss/search?q=vôlei&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 4 },
 
-  // Grupo 5: Tecnologia e Negócios
+  // Tecnologia, negócios e startups
   { nome: 'Tecnologia', url: 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 5 },
   { nome: 'Startups', url: 'https://news.google.com/rss/search?q=startups&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 5 },
   { nome: 'Negócios', url: 'https://news.google.com/rss/headlines/section/topic/BUSINESS.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 5 },
 
-  // Grupo 6: Diversos/Mais fontes
+  // Grandes portais e regionais
   { nome: 'Estadão', url: 'https://feeds.folha.uol.com.br/emcimadahora/rss091.xml', grupo: 6 },
   { nome: 'G1', url: 'https://g1.globo.com/rss/g1/', grupo: 6 },
   { nome: 'UOL', url: 'https://noticias.uol.com.br/ultimas/index.xml', grupo: 6 },
@@ -351,24 +360,23 @@ const feeds = [
   { nome: 'R7', url: 'https://noticias.r7.com/rss', grupo: 6 }
 ];
 
-let noticiasAtuais = [];
-let editoriaSelecionada = "Todas"; // "Todas" = todos os feeds
-
 // Separação para menus em duas linhas: metade em cima, metade embaixo
 const dividirMenus = (() => {
-  const porGrupo = [[],[],[],[],[],[]];
-  feeds.forEach(f => porGrupo[f.grupo-1].push(f));
-  // Agrupa por linha: grupos 1-3 e grupos 4-6
+  const grupos = [[],[],[],[],[],[],[]];
+  feeds.forEach(f => grupos[f.grupo-1].push(f));
+  // Agrupa por linha: grupos 1-4 e grupos 5-7
   return [
-    porGrupo[0].concat(porGrupo[1]).concat(porGrupo[2]),
-    porGrupo[3].concat(porGrupo[4]).concat(porGrupo[5])
+    grupos[0].concat(grupos[1]).concat(grupos[2]).concat(grupos[3]),
+    grupos[4].concat(grupos[5]).concat(grupos[6])
   ];
 })();
+
+let noticiasAtuais = [];
+let editoriaSelecionada = "Todas"; // "Todas" = todos os feeds
 
 function atualizarContador(qtd) {
   document.getElementById("contador").textContent = `🔢 Total de notícias exibidas: ${qtd}`;
 }
-
 function formatarDataAMPM(dataStr) {
   if (!dataStr) return "";
   const data = new Date(dataStr);
@@ -563,14 +571,10 @@ function refreshNoticias() {
   atualizarTimerRefresh();
 }
 
-// --- LADO DIREITO: notícias mais publicadas nas últimas 5 horas --- 
-// Considera títulos repetidos (ou muito similares), identifica os mais recorrentes
-
+// --- LADO DIREITO: notícias mais publicadas nas últimas 5 horas ---
 async function atualizarMaisPublicadas() {
-  // Agrupa por título, conta quantas vezes aparece, ordena por recorrência e por data
   const agora = new Date();
   const cincoHorasAtras = new Date(agora.getTime() - 5*60*60*1000);
-  // Coleta títulos das notícias exibidas (já estão carregadas)
   let titulos = {};
   noticiasAtuais.forEach(item => {
     try {
@@ -582,15 +586,12 @@ async function atualizarMaisPublicadas() {
       if (!titulos[chave]) titulos[chave] = { count: 0, items: [], data: dataNoticia };
       titulos[chave].count++;
       titulos[chave].items.push(item);
-      // Mantém data mais recente
       if (dataNoticia > titulos[chave].data) titulos[chave].data = dataNoticia;
     } catch(e){}
   });
-  // Ordena por mais recorrentes, depois data mais recente
   let lista = Object.values(titulos)
     .sort((a,b) => b.count - a.count || b.data - a.data)
     .slice(0,12);
-  // Renderiza
   const maisPub = document.getElementById("mais-publicadas");
   maisPub.innerHTML = "";
   lista.forEach(entry => {
