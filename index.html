@@ -10,6 +10,15 @@
       color: #f0f0f0;
       margin: 0;
       padding: 0;
+      display: flex;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    .container-main {
+      flex: 1 1 auto;
+      max-width: 900px;
+      margin: 0 auto;
+      padding-bottom: 2em;
     }
     header {
       background: #1e1e1e;
@@ -19,6 +28,9 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
     .titulo-radar {
       display: flex;
@@ -32,41 +44,56 @@
       height: 32px;
       vertical-align: middle;
     }
-
-    /* MENU DE EDITORIA */
-    nav.menu-editorias {
+    .menu-editorias-set {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 0.5em;
-      margin: 1em 0 0.5em 0;
+      gap: 0.4em;
+      margin: 0.5em 0;
     }
+    /* Cores para grupos de editorias */
     .menu-editorias button {
-      background: #23272b;
-      color: #fff;
       border: none;
-      border-radius: 5px 5px 0 0;
+      border-radius: 6px 6px 0 0;
       padding: 0.5em 1em;
       margin: 0;
       cursor: pointer;
       font-size: 1em;
-      transition: background 0.2s;
-      outline: none;
-    }
-    .menu-editorias button.selected,
-    .menu-editorias button:hover {
-      background: #00aced;
-      color: #fff;
       font-weight: bold;
+      transition: background 0.2s, color 0.2s;
+      outline: none;
+      color: #fff;
+      box-shadow: 0 1px 3px #0005;
     }
+    /* Grupo 1 */
+    .cor-grupo1 { background: #00aced; }
+    .cor-grupo1.selected, .cor-grupo1:hover { background: #47D2FF; color: #1e1e1e;}
+    /* Grupo 2 */
+    .cor-grupo2 { background: #00C853; }
+    .cor-grupo2.selected, .cor-grupo2:hover { background: #6DF3A3; color: #1e1e1e;}
+    /* Grupo 3 */
+    .cor-grupo3 { background: #ff9100; }
+    .cor-grupo3.selected, .cor-grupo3:hover { background: #ffd180; color: #1e1e1e;}
+    /* Grupo 4 */
+    .cor-grupo4 { background: #9c27b0; }
+    .cor-grupo4.selected, .cor-grupo4:hover { background: #ce93d8; color: #1e1e1e;}
+    /* Grupo 5 */
+    .cor-grupo5 { background: #e53935; }
+    .cor-grupo5.selected, .cor-grupo5:hover { background: #ff8a80; color: #1e1e1e;}
+    /* Grupo 6 */
+    .cor-grupo6 { background: #607d8b; }
+    .cor-grupo6.selected, .cor-grupo6:hover { background: #b0bec5; color: #1e1e1e;}
 
     .busca {
       text-align: center;
       margin: 1em 0;
       flex-wrap: wrap;
+      display: flex;
+      gap: 0.5em;
+      justify-content: center;
+      align-items: center;
     }
     .busca button {
-      margin: 5px;
       padding: 0.5em 1em;
       background: #00aced;
       color: white;
@@ -74,6 +101,9 @@
       border-radius: 5px;
       cursor: pointer;
       outline: none;
+      font-weight: bold;
+      font-size: 1em;
+      transition: background 0.2s;
     }
     .busca button:hover {
       background: #0077a3;
@@ -87,97 +117,155 @@
     .contador {
       text-align: center;
       font-weight: bold;
-      margin: 1em 0;
+      margin: 1em 0 0.5em 0;
     }
-    .sessao-data {
-      margin: 2em 0 1em 0;
-      color: #fff;
-      font-size: 1.1em;
+    #refresh-timer {
+      font-size:0.95em;
+      color:#aaa;
+      margin-top:0.5em;
+      display: inline-block;
+    }
+    #btn-refresh {
+      margin-left: 0.8em;
+      background: #23272b;
+      border: none;
+      border-radius: 5px;
+      color: #00aced;
+      padding: 0.3em 1em;
+      font-size: 1em;
+      cursor: pointer;
       font-weight: bold;
-      text-align: left;
-      border-bottom: 1px solid #333;
-      padding-bottom: 0.2em;
+      transition: background 0.2s, color 0.2s;
+    }
+    #btn-refresh:hover {
+      background: #00aced;
+      color: #fff;
     }
     #noticias {
       display: flex;
       flex-direction: column;
-      gap: 2em;
-      padding: 1em;
-    }
-    .cards-agrupados {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 1em;
+      gap: 1.2em;
+      padding: 1em 0.5em;
     }
     .card {
       background: #ffffff;
       color: #000000;
       padding: 1em;
       border-radius: 8px;
-      box-shadow: 0 0 5px rgba(255,255,255,0.1);
+      box-shadow: 0 0 5px rgba(255,255,255,0.08);
       position: relative;
-      border-left: 8px solid transparent;
-      transition: border-color 0.2s;
-    }
-    .card.breaking {
-      border-left: 8px solid #ff2e00;
-      background: #fff3f0;
-      animation: destaque 1s infinite alternate;
-    }
-    @keyframes destaque {
-      from { box-shadow: 0 0 16px 2px #ff2e0033; }
-      to { box-shadow: 0 0 24px 4px #ff2e0022; }
-    }
-    .breaking-label {
-      position: absolute;
-      top: 8px;
-      left: -1px;
-      background: #ff2e00;
-      color: #fff;
-      font-size: 0.95em;
-      padding: 2px 8px;
-      border-radius: 0 4px 4px 0;
-      font-weight: bold;
-      z-index: 2;
+      border-left: 6px solid #00aced;
+      margin-bottom: 0.8em;
+      transition: border 0.2s;
     }
     .card h3 {
-      margin: 0.5em 0;
+      margin: 0.5em 0 0.4em 0;
+      font-size: 1.09em;
     }
     .card p {
       color: #333;
+      font-size: 0.98em;
+    }
+    .card small {
+      color: #666;
+      font-size: 0.93em;
+    }
+    /* Layout principal com coluna lateral */
+    .main-layout {
+      display: flex;
+      flex-direction: row;
+      width: 100%;
+      min-height: 100vh;
+    }
+    .main-content {
+      flex: 3 1 0%;
+      margin-right: 2em;
+      min-width: 0;
+    }
+    .sidebar-right {
+      flex: 1 1 280px;
+      background: #191b1c;
+      border-left: 1px solid #222;
+      padding: 1.2em 0.5em;
+      min-width: 260px;
+      max-width: 320px;
+      color: #f0f0f0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      box-sizing: border-box;
+    }
+    .sidebar-right h4 {
+      text-align: center;
+      margin: 0 0 0.8em 0;
+      font-size: 1.13em;
+      color: #00aced;
+    }
+    .sidebar-card {
+      background: #23272b;
+      color: #fff;
+      border-radius: 7px;
+      margin-bottom: 0.7em;
+      padding: 0.7em 0.8em;
+      font-size: 0.99em;
+      box-shadow: 0 1px 6px #0003;
+      border-left: 5px solid #00aced;
+      position: relative;
+    }
+    .sidebar-card a {
+      color: #47d2ff;
+      text-decoration: underline;
+      font-weight: bold;
+    }
+    .sidebar-card small {
+      color: #aaa;
+    }
+    @media (max-width: 1000px) {
+      .main-layout {
+        flex-direction: column;
+      }
+      .sidebar-right {
+        position: static;
+        max-width: 100vw;
+        min-width: 0;
+        height: auto;
+        border-left: none;
+        border-top: 1px solid #222;
+      }
+      .main-content {
+        margin-right: 0;
+      }
     }
     @media (max-width: 600px) {
-      .menu-editorias {
+      .menu-editorias-set,
+      .busca {
         flex-direction: column;
-        gap: 0;
+        gap: 0.2em;
       }
       .menu-editorias button {
         border-radius: 0;
-        margin-bottom: 2px;
         width: 100%;
       }
-      .busca button {
-        width: 90%;
-        margin: 5px auto;
-        display: block;
-      }
+      .busca button,
       .busca input {
-        width: 90%;
+        width: 100%;
+        margin-bottom: 0.2em;
       }
-      .cards-agrupados {
-        grid-template-columns: 1fr;
+      .main-layout {
+        flex-direction: column;
       }
-      .titulo-radar {
-        font-size: 1.1em;
+      .sidebar-right {
+        padding: 0.7em 0.1em;
       }
-      .titulo-radar img {
-        width: 24px;
-        height: 24px;
+      .main-content {
+        margin: 0;
       }
     }
   </style>
 </head>
 <body>
+<div class="container-main">
   <header>
     <div class="titulo-radar">
       <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f6f0.png" alt="Radar Icon" />
@@ -189,45 +277,93 @@
         Guilherme Giuntini
       </a>
     </div>
-    <!-- MENU DE EDITORIAS -->
-    <nav class="menu-editorias" id="menuEditorias">
-      <!-- Os botões serão inseridos via JS -->
-    </nav>
+    <!-- MENU DE EDITORIAS EM DUAS LINHAS -->
+    <nav id="menuEditorias1" class="menu-editorias-set"></nav>
+    <nav id="menuEditorias2" class="menu-editorias-set"></nav>
     <div class="busca">
       <input type="text" id="termoBusca" placeholder="Buscar por palavra-chave">
       <button onclick="buscarPorPalavra()">Buscar</button>
     </div>
     <div class="contador" id="contador"></div>
-    <div id="refresh-timer" style="font-size:0.95em; color:#aaa; margin-top:0.5em;"></div>
+    <div>
+      <span id="refresh-timer"></span>
+      <button id="btn-refresh" title="Atualizar agora" onclick="refreshNoticias()">🔄 Atualizar</button>
+    </div>
   </header>
-  <main id="noticias"></main>
-  <script>
+  <div class="main-layout">
+    <main id="noticias" class="main-content"></main>
+    <aside class="sidebar-right">
+      <h4>Mais Publicadas (últimas 5h)</h4>
+      <div id="mais-publicadas"></div>
+    </aside>
+  </div>
+</div>
+<script>
 const feeds = [
-  { nome: 'Geral', url: 'https://news.google.com/rss?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
-  { nome: 'Mundo', url: 'https://news.google.com/rss/headlines/section/topic/WORLD.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
-  { nome: 'Política', url: 'https://news.google.com/rss/headlines/section/topic/POLITICS.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
-  { nome: 'Negócios', url: 'https://news.google.com/rss/headlines/section/topic/BUSINESS.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
-  { nome: 'Ciência', url: 'https://news.google.com/rss/headlines/section/topic/SCIENCE.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
-  { nome: 'Saúde', url: 'https://news.google.com/rss/headlines/section/topic/HEALTH.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
-  { nome: 'Tecnologia', url: 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
-  { nome: 'Esportes', url: 'https://news.google.com/rss/headlines/section/topic/SPORTS.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
-  { nome: 'Entretenimento', url: 'https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
-  { nome: 'Brasil', url: 'https://news.google.com/rss/headlines/section/geo/Brasil?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
-  { nome: 'Economia', url: 'https://news.google.com/rss/search?q=economia&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
-  { nome: 'Educação', url: 'https://news.google.com/rss/search?q=educação&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
-  { nome: 'Carreira', url: 'https://news.google.com/rss/search?q=carreira&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
-  { nome: 'Meio Ambiente', url: 'https://news.google.com/rss/search?q=meio+ambiente&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
-  { nome: 'Arte', url: 'https://news.google.com/rss/search?q=arte&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
-  { nome: 'Opinião', url: 'https://news.google.com/rss/search?q=opinião&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
-  { nome: 'Moda', url: 'https://news.google.com/rss/search?q=moda&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
-  { nome: 'Culinária', url: 'https://news.google.com/rss/search?q=culinária&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
-  { nome: 'Turismo', url: 'https://news.google.com/rss/search?q=turismo&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
-  { nome: 'Religião', url: 'https://news.google.com/rss/search?q=religião&hl=pt-BR&gl=BR&ceid=BR:pt-419' }
+  // Grupo 1: Notícias Gerais
+  { nome: 'Geral', url: 'https://news.google.com/rss?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 1 },
+  { nome: 'Brasil', url: 'https://news.google.com/rss/headlines/section/geo/Brasil?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 1 },
+  { nome: 'Mundo', url: 'https://news.google.com/rss/headlines/section/topic/WORLD.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 1 },
+  { nome: 'Política', url: 'https://news.google.com/rss/headlines/section/topic/POLITICS.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 1 },
+  { nome: 'Economia', url: 'https://news.google.com/rss/headlines/section/topic/BUSINESS.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 1 },
+  { nome: 'Opinião', url: 'https://news.google.com/rss/search?q=opinião&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 1 },
+
+  // Grupo 2: Ciência, Saúde, Educação, Meio ambiente
+  { nome: 'Ciência', url: 'https://news.google.com/rss/headlines/section/topic/SCIENCE.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 2 },
+  { nome: 'Saúde', url: 'https://news.google.com/rss/headlines/section/topic/HEALTH.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 2 },
+  { nome: 'Educação', url: 'https://news.google.com/rss/search?q=educação&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 2 },
+  { nome: 'Meio Ambiente', url: 'https://news.google.com/rss/search?q=meio+ambiente&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 2 },
+  { nome: 'Carreira', url: 'https://news.google.com/rss/search?q=carreira&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 2 },
+
+  // Grupo 3: Entretenimento e Cultura
+  { nome: 'Entretenimento', url: 'https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 3 },
+  { nome: 'Celebridades', url: 'https://news.google.com/rss/search?q=celebridades&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 3 },
+  { nome: 'A Fazenda', url: 'https://news.google.com/rss/search?q=a+fazenda&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 3 },
+  { nome: 'BBB', url: 'https://news.google.com/rss/search?q=bbb&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 3 },
+  { nome: 'Fofocas', url: 'https://news.google.com/rss/search?q=fofoca+celebridades&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 3 },
+  { nome: 'Arte', url: 'https://news.google.com/rss/search?q=arte&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 3 },
+  { nome: 'Culinária', url: 'https://news.google.com/rss/search?q=culinária&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 3 },
+  { nome: 'Moda', url: 'https://news.google.com/rss/search?q=moda&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 3 },
+  { nome: 'Turismo', url: 'https://news.google.com/rss/search?q=turismo&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 3 },
+  { nome: 'Religião', url: 'https://news.google.com/rss/search?q=religião&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 3 },
+
+  // Grupo 4: Esportes
+  { nome: 'Esportes', url: 'https://news.google.com/rss/headlines/section/topic/SPORTS.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 4 },
+  { nome: 'Futebol', url: 'https://news.google.com/rss/search?q=futebol&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 4 },
+  { nome: 'Futebol Feminino', url: 'https://news.google.com/rss/search?q=futebol+feminino&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 4 },
+  { nome: 'Campeonato Brasileiro', url: 'https://news.google.com/rss/search?q=campeonato+brasileiro&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 4 },
+  { nome: 'Libertadores', url: 'https://news.google.com/rss/search?q=libertadores&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 4 },
+  { nome: 'Champions League', url: 'https://news.google.com/rss/search?q=champions+league&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 4 },
+  { nome: 'NBA', url: 'https://news.google.com/rss/search?q=NBA&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 4 },
+  { nome: 'Vôlei', url: 'https://news.google.com/rss/search?q=vôlei&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 4 },
+
+  // Grupo 5: Tecnologia e Negócios
+  { nome: 'Tecnologia', url: 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 5 },
+  { nome: 'Startups', url: 'https://news.google.com/rss/search?q=startups&hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 5 },
+  { nome: 'Negócios', url: 'https://news.google.com/rss/headlines/section/topic/BUSINESS.pt_br?hl=pt-BR&gl=BR&ceid=BR:pt-419', grupo: 5 },
+
+  // Grupo 6: Diversos/Mais fontes
+  { nome: 'Estadão', url: 'https://feeds.folha.uol.com.br/emcimadahora/rss091.xml', grupo: 6 },
+  { nome: 'G1', url: 'https://g1.globo.com/rss/g1/', grupo: 6 },
+  { nome: 'UOL', url: 'https://noticias.uol.com.br/ultimas/index.xml', grupo: 6 },
+  { nome: 'Globo Esporte', url: 'https://globoesporte.globo.com/rss/ultimas.xml', grupo: 6 },
+  { nome: 'Terra', url: 'https://www.terra.com.br/rss/0,,EI1,00.xml', grupo: 6 },
+  { nome: 'R7', url: 'https://noticias.r7.com/rss', grupo: 6 }
 ];
 
 let noticiasAtuais = [];
-let noticiasPorData = {};
 let editoriaSelecionada = "Todas"; // "Todas" = todos os feeds
+
+// Separação para menus em duas linhas: metade em cima, metade embaixo
+const dividirMenus = (() => {
+  const porGrupo = [[],[],[],[],[],[]];
+  feeds.forEach(f => porGrupo[f.grupo-1].push(f));
+  // Agrupa por linha: grupos 1-3 e grupos 4-6
+  return [
+    porGrupo[0].concat(porGrupo[1]).concat(porGrupo[2]),
+    porGrupo[3].concat(porGrupo[4]).concat(porGrupo[5])
+  ];
+})();
 
 function atualizarContador(qtd) {
   document.getElementById("contador").textContent = `🔢 Total de notícias exibidas: ${qtd}`;
@@ -243,113 +379,40 @@ function formatarDataAMPM(dataStr) {
   }).replace(',', ' -');
 }
 
-function isBreakingNews(title, description) {
-  const crits = /(\burgente\b|\bbreaking\b|última hora|alerta|emergência|importante)/i;
-  if (crits.test(title) || crits.test(description)) return true;
-  if (/BREAKING NEWS/i.test(description)) return true;
-  if (title.length < 50 && /^[A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9 \-!?:]+$/.test(title)) return true;
-  return false;
-}
-
-// Agrupar por: último minuto, hoje, ontem, semana, mês
-function agruparPorDatas(lista) {
-  const agora = new Date();
-  const hoje = new Date(agora); hoje.setHours(0,0,0,0);
-  const ontem = new Date(hoje); ontem.setDate(hoje.getDate()-1);
-  const semana = new Date(hoje); semana.setDate(hoje.getDate()-7);
-
-  const grupos = {
-    'último segundo': [],
-    'último minuto': [],
-    'hoje': [],
-    'ontem': [],
-    'última semana': [],
-    'anteriores': []
-  };
-
-  lista.forEach(item => {
-    const pubDate = item.querySelector("pubDate")?.textContent;
-    if (!pubDate) return;
-    const dataNoticia = new Date(pubDate);
-    const diffSeg = Math.floor((agora.getTime() - dataNoticia.getTime())/1000);
-    const diffMin = Math.floor(diffSeg/60);
-
-    if (diffSeg <= 1) {
-      grupos['último segundo'].push(item);
-    } else if (diffMin < 1) {
-      grupos['último minuto'].push(item);
-    } else {
-      const localNoticia = new Date(dataNoticia.getFullYear(), dataNoticia.getMonth(), dataNoticia.getDate());
-      if (localNoticia.getTime() === hoje.getTime()) {
-        grupos['hoje'].push(item);
-      } else if (localNoticia.getTime() === ontem.getTime()) {
-        grupos['ontem'].push(item);
-      } else if (localNoticia >= semana) {
-        grupos['última semana'].push(item);
-      } else {
-        grupos['anteriores'].push(item);
-      }
-    }
-  });
-  return grupos;
-}
-
-function exibirNoticiasAgrupadas(grupos) {
+// Renderização de cards de notícia (sem agrupamento, um a um)
+function exibirNoticiasSimples(lista) {
   const noticias = document.getElementById("noticias");
   noticias.innerHTML = "";
   let total = 0;
-  const ordem = ['último segundo', 'último minuto', 'hoje', 'ontem', 'última semana', 'anteriores'];
-  ordem.forEach(grupo => {
-    const lista = grupos[grupo];
-    if (!lista || !lista.length) return;
-    total += lista.length;
-    const sessao = document.createElement('section');
-    sessao.className = 'sessao-data';
-    sessao.innerHTML = `<div>${grupo.toUpperCase()} (${lista.length})</div>`;
-    const cards = document.createElement('div');
-    cards.className = 'cards-agrupados';
-
-    let breaking = lista.filter(item => {
-      const title = item.querySelector("title")?.textContent || "";
-      const desc = item.querySelector("description")?.textContent || "";
-      return isBreakingNews(title, desc);
-    }).slice(0,3);
-    let restantes = lista.filter(item => !breaking.includes(item));
-    let final = breaking.concat(restantes);
-
-    final.forEach(item => {
-      try {
-        const title = item.querySelector("title").textContent;
-        const link = item.querySelector("link").textContent;
-        const description = item.querySelector("description")?.textContent || "";
-        const pubDate = item.querySelector("pubDate")?.textContent || "";
-        const breaking = isBreakingNews(title, description);
-        const card = document.createElement("div");
-        card.className = "card" + (breaking ? " breaking" : "");
-        card.innerHTML = `
-          ${breaking ? '<span class="breaking-label">DESTAQUE</span>' : ''}
-          <h3><a href="${link}" target="_blank">${title}</a></h3>
-          <small style="color:#666;">${pubDate ? ('🕒 ' + formatarDataAMPM(pubDate)) : ''}</small>
-          <p>${description}</p>
-        `;
-        cards.appendChild(card);
-      } catch (e) {}
-    });
-    sessao.appendChild(cards);
-    noticias.appendChild(sessao);
+  lista.forEach(item => {
+    try {
+      const title = item.querySelector("title").textContent;
+      const link = item.querySelector("link").textContent;
+      const description = item.querySelector("description")?.textContent || "";
+      const pubDate = item.querySelector("pubDate")?.textContent || "";
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <h3><a href="${link}" target="_blank">${title}</a></h3>
+        <small>${pubDate ? ('🕒 ' + formatarDataAMPM(pubDate)) : ''}</small>
+        <p>${description}</p>
+      `;
+      noticias.appendChild(card);
+      total++;
+    } catch (e) {}
   });
   atualizarContador(total);
 }
 
-// Carrega notícias de todos os feeds, exibe agrupadas
-async function carregarTodasNoticiasAgrupadas() {
+// Carrega notícias de todos os feeds, exibe uma a uma (sem agrupamento)
+async function carregarTodasNoticiasSimples() {
   editoriaSelecionada = "Todas";
   atualizarMenuEditorias();
   document.getElementById("noticias").innerHTML = "<p>Carregando notícias de todas as editorias...</p>";
   atualizarContador(0);
 
   let todasNoticias = [];
-  for (const feed of feeds) {
+  let promessas = feeds.map(async feed => {
     try {
       const resp = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(feed.url)}`);
       const data = await resp.json();
@@ -360,15 +423,16 @@ async function carregarTodasNoticiasAgrupadas() {
     } catch (err) {
       // Ignora erro de feed individual
     }
-  }
+  });
+  await Promise.all(promessas);
   todasNoticias.sort((a, b) => {
     const dateA = new Date(a.querySelector("pubDate")?.textContent || 0);
     const dateB = new Date(b.querySelector("pubDate")?.textContent || 0);
     return dateB - dateA;
   });
   noticiasAtuais = todasNoticias;
-  const grupos = agruparPorDatas(noticiasAtuais);
-  exibirNoticiasAgrupadas(grupos);
+  exibirNoticiasSimples(noticiasAtuais);
+  atualizarMaisPublicadas();
 }
 
 // Carrega notícias apenas de uma editoria específica
@@ -380,7 +444,7 @@ async function carregarNoticiasEditoria(nomeEditoria) {
 
   const feed = feeds.find(f => f.nome === nomeEditoria);
   if (!feed) {
-    carregarTodasNoticiasAgrupadas();
+    carregarTodasNoticiasSimples();
     return;
   }
   try {
@@ -394,39 +458,48 @@ async function carregarNoticiasEditoria(nomeEditoria) {
       const dateB = new Date(b.querySelector("pubDate")?.textContent || 0);
       return dateB - dateA;
     });
-    const grupos = agruparPorDatas(noticiasAtuais);
-    exibirNoticiasAgrupadas(grupos);
+    exibirNoticiasSimples(noticiasAtuais);
+    atualizarMaisPublicadas();
   } catch (err) {
     document.getElementById("noticias").innerHTML = `<p>Erro ao carregar notícias!</p>`;
   }
 }
 
-// Atualiza o menu, destacando o botão selecionado
+// Atualiza os dois menus de editorias (metade em cima, metade embaixo)
 function atualizarMenuEditorias() {
-  const nav = document.getElementById("menuEditorias");
-  nav.innerHTML = "";
-  // Adiciona botão "Todas"
+  const nav1 = document.getElementById("menuEditorias1");
+  const nav2 = document.getElementById("menuEditorias2");
+  nav1.innerHTML = "";
+  nav2.innerHTML = "";
+  // Adiciona botão "Todas" em cima
   const btnTodas = document.createElement("button");
   btnTodas.textContent = "Todas";
-  btnTodas.className = (editoriaSelecionada === "Todas" ? "selected" : "");
-  btnTodas.onclick = () => carregarTodasNoticiasAgrupadas();
-  nav.appendChild(btnTodas);
-  // Adiciona cada editoria
-  feeds.forEach(feed => {
+  btnTodas.className = "cor-grupo1" + (editoriaSelecionada === "Todas" ? " selected" : "");
+  btnTodas.onclick = () => carregarTodasNoticiasSimples();
+  nav1.appendChild(btnTodas);
+  // Metade em cima, metade embaixo, colorido por grupo
+  dividirMenus[0].forEach(feed => {
     const btn = document.createElement("button");
     btn.textContent = feed.nome;
-    btn.className = (editoriaSelecionada === feed.nome ? "selected" : "");
+    btn.className = "cor-grupo"+feed.grupo + (editoriaSelecionada === feed.nome ? " selected" : "");
     btn.onclick = () => carregarNoticiasEditoria(feed.nome);
-    nav.appendChild(btn);
+    nav1.appendChild(btn);
+  });
+  dividirMenus[1].forEach(feed => {
+    const btn = document.createElement("button");
+    btn.textContent = feed.nome;
+    btn.className = "cor-grupo"+feed.grupo + (editoriaSelecionada === feed.nome ? " selected" : "");
+    btn.onclick = () => carregarNoticiasEditoria(feed.nome);
+    nav2.appendChild(btn);
   });
 }
 
-// Busca por palavra-chave em todos feeds
+// Busca por palavra-chave em todos feeds do Google News (poderia ser em todos, mas para performance)
 function buscarPorPalavra() {
   const termo = document.getElementById("termoBusca").value.trim();
   if (!termo) {
     if (editoriaSelecionada === "Todas") {
-      carregarTodasNoticiasAgrupadas();
+      carregarTodasNoticiasSimples();
     } else {
       carregarNoticiasEditoria(editoriaSelecionada);
     }
@@ -434,7 +507,6 @@ function buscarPorPalavra() {
   }
   document.getElementById("noticias").innerHTML = "<p>Buscando notícias...</p>";
   atualizarContador(0);
-  // Busca só no Google News, mas poderia fazer por todos feeds (para simplificar)
   const rssBusca = `https://news.google.com/rss/search?q=${encodeURIComponent(termo)}&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
   fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(rssBusca)}`)
     .then(response => response.json())
@@ -447,15 +519,15 @@ function buscarPorPalavra() {
         const dateB = new Date(b.querySelector("pubDate")?.textContent || 0);
         return dateB - dateA;
       });
-      const grupos = agruparPorDatas(noticiasAtuais);
-      exibirNoticiasAgrupadas(grupos);
+      exibirNoticiasSimples(noticiasAtuais);
+      atualizarMaisPublicadas();
     })
     .catch(err => {
       document.getElementById("noticias").innerHTML = `<p>Erro ao buscar notícias: ${err.message}</p>`;
     });
 }
 
-// --- AUTO REFRESH DE 15 MINUTOS ---
+// --- AUTO REFRESH DE 15 MINUTOS + Botão refresh ---
 let refreshInterval = 15 * 60; // segundos
 let refreshCountdown = refreshInterval;
 let refreshTimerId = null;
@@ -465,7 +537,7 @@ function atualizarTimerRefresh() {
   if (!el) return;
   const min = Math.floor(refreshCountdown / 60);
   const sec = refreshCountdown % 60;
-  el.textContent = `⏳ Atualização automática em ${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')} `;
+  el.textContent = `⏳ Atualização automática em ${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
 }
 
 function iniciarAutoRefresh() {
@@ -476,20 +548,71 @@ function iniciarAutoRefresh() {
     refreshCountdown--;
     if (refreshCountdown <= 0) {
       refreshCountdown = refreshInterval;
-      if (editoriaSelecionada === "Todas") {
-        carregarTodasNoticiasAgrupadas();
-      } else {
-        carregarNoticiasEditoria(editoriaSelecionada);
-      }
+      refreshNoticias();
     }
     atualizarTimerRefresh();
   }, 1000);
+}
+function refreshNoticias() {
+  if (editoriaSelecionada === "Todas") {
+    carregarTodasNoticiasSimples();
+  } else {
+    carregarNoticiasEditoria(editoriaSelecionada);
+  }
+  refreshCountdown = refreshInterval;
+  atualizarTimerRefresh();
+}
+
+// --- LADO DIREITO: notícias mais publicadas nas últimas 5 horas --- 
+// Considera títulos repetidos (ou muito similares), identifica os mais recorrentes
+
+async function atualizarMaisPublicadas() {
+  // Agrupa por título, conta quantas vezes aparece, ordena por recorrência e por data
+  const agora = new Date();
+  const cincoHorasAtras = new Date(agora.getTime() - 5*60*60*1000);
+  // Coleta títulos das notícias exibidas (já estão carregadas)
+  let titulos = {};
+  noticiasAtuais.forEach(item => {
+    try {
+      const pubDate = item.querySelector("pubDate")?.textContent || "";
+      const dataNoticia = new Date(pubDate);
+      if (isNaN(dataNoticia) || dataNoticia < cincoHorasAtras) return;
+      let title = item.querySelector("title")?.textContent?.trim() || "";
+      let chave = title.toLowerCase().replace(/[^\w\s]/g,"").substring(0,110);
+      if (!titulos[chave]) titulos[chave] = { count: 0, items: [], data: dataNoticia };
+      titulos[chave].count++;
+      titulos[chave].items.push(item);
+      // Mantém data mais recente
+      if (dataNoticia > titulos[chave].data) titulos[chave].data = dataNoticia;
+    } catch(e){}
+  });
+  // Ordena por mais recorrentes, depois data mais recente
+  let lista = Object.values(titulos)
+    .sort((a,b) => b.count - a.count || b.data - a.data)
+    .slice(0,12);
+  // Renderiza
+  const maisPub = document.getElementById("mais-publicadas");
+  maisPub.innerHTML = "";
+  lista.forEach(entry => {
+    const item = entry.items[0];
+    const title = item.querySelector("title").textContent;
+    const link = item.querySelector("link").textContent;
+    const pubDate = item.querySelector("pubDate")?.textContent || "";
+    const fonte = new URL(link).hostname.replace("www.","");
+    maisPub.innerHTML += `
+      <div class="sidebar-card">
+        <a href="${link}" target="_blank">${title}</a><br>
+        <small>🗞️ ${fonte} &bullet; ${formatarDataAMPM(pubDate)}</small>
+        <div style="position:absolute; right:10px; top:10px; color:#47d2ff; font-weight:bold;">${entry.count > 1 ? "×"+entry.count : ""}</div>
+      </div>
+    `;
+  });
 }
 
 // Inicialização
 window.onload = () => {
   atualizarMenuEditorias();
-  carregarTodasNoticiasAgrupadas();
+  carregarTodasNoticiasSimples();
   iniciarAutoRefresh();
 };
 </script>
